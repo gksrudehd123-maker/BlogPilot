@@ -403,20 +403,20 @@ GitHub Push → Vercel Auto Deploy (main branch → Production)
 
 ## TODO 리스트
 
-### Phase 1 - 프로젝트 초기 설정
+### Phase 1 - 프로젝트 초기 설정 + 레이아웃
 - [ ] Next.js + TypeScript + Tailwind CSS + shadcn/ui 프로젝트 설정
 - [ ] Prisma + Supabase PostgreSQL 연동
-- [ ] NextAuth.js 인증 (로그인/회원가입)
 - [ ] 대시보드 레이아웃 (사이드바 + 헤더 + 다크모드)
+- [ ] 모바일 반응형 (사이드바 → 햄버거 메뉴)
 - [ ] PWA 설정 (next-pwa, manifest, service worker)
 
-### Phase 2 - 플랫폼 연동
+### Phase 2 - 플랫폼 연동 (티스토리 우선)
 - [ ] 플랫폼 계정 관리 UI (등록/수정/삭제/연동 상태)
-- [ ] 네이버 블로그 API 연동 (OAuth + 글 발행)
-- [ ] 티스토리 API 연동 (OAuth + 글 발행 + 카테고리)
+- [ ] 플랫폼별 어댑터 패턴 구현 (공통 인터페이스)
+- [ ] 티스토리 API 연동 (OAuth + 글 발행 + 카테고리) — 가장 먼저
 - [ ] 워드프레스 REST API 연동 (Application Password + 글 발행 + 미디어)
 - [ ] 블로그스팟 API 연동 (Google OAuth + 글 발행 + 라벨)
-- [ ] 플랫폼별 어댑터 패턴 구현 (공통 인터페이스)
+- [ ] 네이버 블로그 API 연동 (OAuth + 글 발행) — API 제약이 많아 마지막
 
 ### Phase 3 - AI 글 생성
 - [ ] Claude API 연동 (글 생성 서비스)
@@ -453,12 +453,14 @@ GitHub Push → Vercel Auto Deploy (main branch → Production)
 - [ ] 최근 발행 목록
 - [ ] 예약 대기 목록
 
-### Phase 8 - 최적화 + 배포
+### Phase 8 - 인증 + 배포 + 최적화
+- [ ] NextAuth.js 인증 (로그인/회원가입)
+- [ ] 역할 기반 접근 제어 (필요 시)
+- [ ] API 인증 미들웨어
 - [ ] Vercel 배포
 - [ ] Vercel Cron Jobs 설정 (예약 발행 체크)
 - [ ] PWA 최적화 (오프라인 캐싱, 푸시 알림)
 - [ ] 성능 최적화 (TanStack Query, lazy load)
-- [ ] 모바일 반응형 UI 정리
 - [ ] 에러 핸들링 + Sentry 연동
 
 ### Phase 9 - 데스크톱 앱 (Tauri)
