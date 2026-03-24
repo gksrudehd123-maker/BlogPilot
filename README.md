@@ -16,6 +16,7 @@
 - **예약 발행**: 날짜/시간 지정 예약 + 반복 스케줄 설정
 - **키워드 리서치**: 네이버 검색량/경쟁도 분석, 추천 키워드 도출
 - **모바일 지원**: PWA로 모바일에서도 관리 가능
+- **데스크톱 앱**: Tauri로 .exe 설치 파일 생성 (Windows)
 
 ---
 
@@ -55,6 +56,7 @@
 | **Toast** | sonner | 알림 토스트 UI |
 | **Theme** | next-themes | 다크모드/라이트모드/시스템 |
 | **Mobile** | PWA (next-pwa) | 모바일 앱처럼 설치 가능 |
+| **Desktop** | Tauri 2 | .exe 데스크톱 앱 (경량 ~5MB) |
 | **Charts** | Recharts 3 | 키워드 분석 차트 |
 
 ### 개발 도구
@@ -286,15 +288,21 @@ Platform Type: NAVER | TISTORY | WORDPRESS | BLOGSPOT
 GitHub Push → Vercel Auto Deploy (main branch → Production)
 ```
 
-### PWA 모바일 배포
+### 멀티 플랫폼 배포
 
 ```
-웹 브라우저 접속 → "홈 화면에 추가" → 네이티브 앱처럼 사용
-- 오프라인 지원 (Service Worker)
-- 푸시 알림 (발행 완료/실패 알림)
-- 풀스크린 모드
-- iOS / Android 모두 지원
+하나의 Next.js 코드베이스로 3가지 환경 커버:
+
+웹       → Vercel 배포 (브라우저 접속)
+모바일   → PWA (홈 화면에 추가 → 네이티브 앱처럼 사용)
+데스크톱 → Tauri (.exe 설치 파일 → Windows 앱)
 ```
+
+| 환경 | 방식 | 특징 |
+|------|------|------|
+| **웹** | Vercel 배포 | URL 접속, 설치 불필요 |
+| **모바일** | PWA | 홈 화면 추가, 오프라인 지원, 푸시 알림 |
+| **데스크톱** | Tauri (.exe) | 경량 설치 (~5MB), 트레이 아이콘, 시스템 알림, 자동 업데이트 |
 
 ---
 
@@ -452,6 +460,13 @@ GitHub Push → Vercel Auto Deploy (main branch → Production)
 - [ ] 성능 최적화 (TanStack Query, lazy load)
 - [ ] 모바일 반응형 UI 정리
 - [ ] 에러 핸들링 + Sentry 연동
+
+### Phase 9 - 데스크톱 앱 (Tauri)
+- [ ] Tauri 2 프로젝트 설정 (Next.js 연동)
+- [ ] .exe 빌드 설정 (Windows 설치 파일)
+- [ ] 트레이 아이콘 + 시스템 알림
+- [ ] 자동 업데이트 (Tauri Updater)
+- [ ] 시작 시 자동 실행 옵션
 
 ### 향후 확장
 - [ ] 글 템플릿 라이브러리 (카테고리별 사전 정의 템플릿)
