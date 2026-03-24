@@ -414,15 +414,15 @@ GitHub Push → Vercel Auto Deploy (main branch → Production)
 - [x] 공통 유틸 (ThemeProvider, QueryProvider, ProgressBar, sonner Toast)
 - [x] Pretendard 폰트 + Blue primary 디자인 시스템
 
-### Phase 2 - 플랫폼 연동 (API 방식 — 워드프레스 우선)
-> 워드프레스(자체 REST API)와 블로그스팟(Google Blogger API)만 공식 API 지원.
+### Phase 2 - 플랫폼 연동 (API 방식 — 블로그스팟 우선)
+> 블로그스팟(Google Blogger API)과 워드프레스(자체 REST API)만 공식 API 지원.
 > 티스토리(API 종료)와 네이버 블로그(API 미지원)는 Phase 9에서 브라우저 자동화로 구현.
 
 - [ ] 플랫폼별 어댑터 패턴 구현 (공통 인터페이스: connect, publish, edit, delete)
 - [ ] 플랫폼 계정 관리 API + UI (등록/수정/삭제/연동 상태)
-- [ ] 워드프레스 REST API 연동 (Application Password + 글 발행 + 미디어) — 가장 먼저
-- [ ] 워드프레스 글 발행 테스트 UI (제목/본문 입력 → 발행 → 블로그에서 확인)
-- [ ] 블로그스팟 API 연동 (Google OAuth + 글 발행 + 라벨)
+- [ ] 블로그스팟 API 연동 (Google OAuth + Blogger API + 글 발행 + 라벨) — 가장 먼저
+- [ ] 블로그스팟 글 발행 테스트 UI (제목/본문 입력 → 발행 → 블로그에서 확인)
+- [ ] 워드프레스 REST API 연동 (Application Password + 글 발행 + 미디어)
 
 ### Phase 3 - AI 글 생성
 - [ ] Claude API 연동 (글 생성 서비스)
