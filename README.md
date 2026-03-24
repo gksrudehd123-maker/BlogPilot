@@ -22,12 +22,12 @@
 
 ## 지원 플랫폼
 
-| 플랫폼 | API | 인증 방식 | 기능 |
-|--------|-----|----------|------|
-| **네이버 블로그** | 네이버 Open API | OAuth 2.0 | 글 작성/수정 |
-| **티스토리** | 티스토리 Open API | OAuth 2.0 | 글 작성/수정/삭제, 카테고리 |
-| **워드프레스** | WordPress REST API | Application Password | 글 작성/수정/삭제, 미디어, 카테고리 |
-| **블로그스팟** | Google Blogger API | Google OAuth 2.0 | 글 작성/수정/삭제, 라벨 |
+| 플랫폼 | 연동 방식 | 인증 | 글 작성 API |
+|--------|----------|------|-----------|
+| **티스토리** | API | OAuth 2.0 | ✅ 작성/수정/삭제, 카테고리 |
+| **워드프레스** | API | Application Password | ✅ 작성/수정/삭제, 미디어, 카테고리 |
+| **블로그스팟** | API | Google OAuth 2.0 | ✅ 작성/수정/삭제, 라벨 |
+| **네이버 블로그** | 브라우저 자동화 (Puppeteer) | 로컬 로그인 | ❌ API 미지원 → Tauri 앱에서 자동화 |
 
 ---
 
@@ -414,13 +414,16 @@ GitHub Push → Vercel Auto Deploy (main branch → Production)
 - [x] 공통 유틸 (ThemeProvider, QueryProvider, ProgressBar, sonner Toast)
 - [x] Pretendard 폰트 + Blue primary 디자인 시스템
 
-### Phase 2 - 플랫폼 연동 (티스토리 우선)
-- [ ] 플랫폼 계정 관리 UI (등록/수정/삭제/연동 상태)
-- [ ] 플랫폼별 어댑터 패턴 구현 (공통 인터페이스)
+### Phase 2 - 플랫폼 연동 (API 방식 — 티스토리 우선)
+> 티스토리/워드프레스/블로그스팟은 공식 API로 글 작성/수정/삭제 지원.
+> 네이버 블로그는 글 작성 API를 제공하지 않음 → Phase 9에서 브라우저 자동화로 구현.
+
+- [ ] 플랫폼별 어댑터 패턴 구현 (공통 인터페이스: connect, publish, edit, delete)
+- [ ] 플랫폼 계정 관리 API + UI (등록/수정/삭제/연동 상태)
 - [ ] 티스토리 API 연동 (OAuth + 글 발행 + 카테고리) — 가장 먼저
+- [ ] 티스토리 글 발행 테스트 UI (제목/본문 입력 → 발행 → 블로그에서 확인)
 - [ ] 워드프레스 REST API 연동 (Application Password + 글 발행 + 미디어)
 - [ ] 블로그스팟 API 연동 (Google OAuth + 글 발행 + 라벨)
-- [ ] 네이버 블로그 API 연동 (OAuth + 글 발행) — API 제약이 많아 마지막
 
 ### Phase 3 - AI 글 생성
 - [ ] Claude API 연동 (글 생성 서비스)
@@ -467,12 +470,17 @@ GitHub Push → Vercel Auto Deploy (main branch → Production)
 - [ ] 성능 최적화 (TanStack Query, lazy load)
 - [ ] 에러 핸들링 + Sentry 연동
 
-### Phase 9 - 데스크톱 앱 (Tauri)
+### Phase 9 - 데스크톱 앱 (Tauri) + 네이버 블로그 자동화
+> 네이버 블로그는 글 작성 API를 제공하지 않으므로, Tauri 데스크톱 앱에서
+> 브라우저 자동화(Puppeteer)로 구현. 사용자 PC에서 로컬 실행하므로 보안 안전.
+
 - [ ] Tauri 2 프로젝트 설정 (Next.js 연동)
 - [ ] .exe 빌드 설정 (Windows 설치 파일)
 - [ ] 트레이 아이콘 + 시스템 알림
 - [ ] 자동 업데이트 (Tauri Updater)
 - [ ] 시작 시 자동 실행 옵션
+- [ ] 네이버 블로그 브라우저 자동화 (Puppeteer — 로그인 → 글쓰기 → 발행)
+- [ ] 네이버 로그인 정보 로컬 암호화 저장 (서버 전송 안 함)
 
 ### Phase 10 - SaaS 서비스화
 > 다중 사용자 서비스로 전환. 각 사용자가 자기 블로그 계정을 OAuth로 연동하여 사용.
