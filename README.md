@@ -403,12 +403,16 @@ GitHub Push → Vercel Auto Deploy (main branch → Production)
 
 ## TODO 리스트
 
-### Phase 1 - 프로젝트 초기 설정 + 레이아웃
-- [ ] Next.js + TypeScript + Tailwind CSS + shadcn/ui 프로젝트 설정
-- [ ] Prisma + Supabase PostgreSQL 연동
-- [ ] 대시보드 레이아웃 (사이드바 + 헤더 + 다크모드)
-- [ ] 모바일 반응형 (사이드바 → 햄버거 메뉴)
-- [ ] PWA 설정 (next-pwa, manifest, service worker)
+### Phase 1 - 프로젝트 초기 설정 + 레이아웃 (완료)
+- [x] Next.js 14 + TypeScript + Tailwind CSS + shadcn/ui 프로젝트 설정
+- [x] Prisma 5 + Supabase PostgreSQL 연동 (서울 리전)
+- [x] 초기 DB 스키마 (User, Platform, Post, PublishLog, Keyword, KeywordStat, Setting)
+- [x] 대시보드 레이아웃 (사이드바 확장/축소 + 헤더 + 다크모드)
+- [x] 모바일 반응형 (사이드바 → 햄버거 메뉴)
+- [x] PWA 설정 (next-pwa, manifest, service worker)
+- [x] 빈 상태 페이지 6개 (대시보드, 글 관리, 예약 발행, 키워드, 플랫폼, 설정)
+- [x] 공통 유틸 (ThemeProvider, QueryProvider, ProgressBar, sonner Toast)
+- [x] Pretendard 폰트 + Blue primary 디자인 시스템
 
 ### Phase 2 - 플랫폼 연동 (티스토리 우선)
 - [ ] 플랫폼 계정 관리 UI (등록/수정/삭제/연동 상태)
@@ -470,12 +474,44 @@ GitHub Push → Vercel Auto Deploy (main branch → Production)
 - [ ] 자동 업데이트 (Tauri Updater)
 - [ ] 시작 시 자동 실행 옵션
 
+### Phase 10 - SaaS 서비스화
+> 다중 사용자 서비스로 전환. 각 사용자가 자기 블로그 계정을 OAuth로 연동하여 사용.
+> 티스토리 API 앱은 BlogPilot 1개만 등록, 사용자별 토큰으로 각자의 블로그에 발행.
+
+- [ ] 회원 시스템 (NextAuth.js — 이메일/비밀번호 + SNS 로그인)
+- [ ] 결제 연동 (토스페이먼츠 or Stripe — 월 구독 모델)
+- [ ] 플랜 분리 (Free: 플랫폼 1개, 월 10글, AI 5회 / Pro: 전체 무제한 / Team: 팀원 5명)
+- [ ] 사용량 제한 (플랜별 AI 글 생성 횟수, 발행 횟수 체크)
+- [ ] 랜딩 페이지 (서비스 소개, 요금제, 가입 유도)
+- [ ] 이용약관 / 개인정보처리방침
+- [ ] 어드민 대시보드 (전체 사용자 현황, 매출, 구독 관리)
+
 ### 향후 확장
 - [ ] 글 템플릿 라이브러리 (카테고리별 사전 정의 템플릿)
 - [ ] SEO 분석 (제목/메타/키워드 밀도 점검)
 - [ ] A/B 테스트 (제목/썸네일 변형 테스트)
 - [ ] 팀 협업 (다중 사용자 + 역할 분리)
 - [ ] 외부 RSS 수집 → 리라이팅 자동화
+
+---
+
+## 수익 모델 (SaaS 전환 시)
+
+| 플랜 | 가격 | 내용 |
+|------|------|------|
+| **Free** | 무료 | 플랫폼 1개, 월 10글, AI 생성 5회 |
+| **Pro** | 월 9,900원 | 플랫폼 4개, 무제한 발행, AI 무제한, 키워드 분석 |
+| **Team** | 월 29,900원 | Pro + 팀원 5명 + 예약 발행 + 우선 지원 |
+
+### AI 글 생성 비용 (Claude API)
+
+| 글 길이 | 비용 |
+|---------|------|
+| 1,000자 | ~$0.01 (약 15원) |
+| 2,000자 | ~$0.02 (약 30원) |
+| 3,000자 | ~$0.03 (약 45원) |
+
+> 글 100개 생성해도 $2~3 수준. Pro 플랜 구독료로 충분히 커버 가능.
 
 ---
 
