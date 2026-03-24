@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================================
+// 사용자
+// ============================================================
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  posts     Post[]
+  platforms Platform[]
+  keywords  Keyword[]
+
+  @@map("users")
+}
+
+// ============================================================
+// 플랫폼 (블로그 계정 연동)
+// ============================================================
+
+enum PlatformType {
+  NAVER
+  TISTORY
+  WORDPRESS
+  BLOGSPOT
+}
+
+model Platform {
+  id          String       @id @default(cuid())
+  type        PlatformType
+  name        String       // "내 티스토리", "메인 워드프레스" 등 사용자 지정 이름
+  blogUrl     String?      // 블로그 URL
+  credentials Json?        // OAuth 토큰, API 키 등 (암호화 저장)
+  isActive    Boolean      @default(true)
+
+  userId    String
+  user      User @relation(fields: [userId], references: [id])
+
+  publishLogs PublishLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("platforms")
+}
+
+// ============================================================
+// 글 (포스트)
+// ============================================================
+
+enum PostStatus {
+  DRAFT       // 초안
+  SCHEDULED   // 예약됨
+  PUBLISHING  // 발행 중
+  PUBLISHED   // 발행 완료
+  FAILED      // 발행 실패
+}
+
+model Post {
+  id          String     @id @default(cuid())
+  title       String
+  content     String     @db.Text
+  keyword     String?    // 타겟 키워드
+  status      PostStatus @default(DRAFT)
+  scheduledAt DateTime?  // 예약 발행 시간
+  images      String[]   // 이미지 URL 목록
+
+  userId String
+  user   User @relation(fields: [userId], references: [id])
+
+  publishLogs PublishLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([scheduledAt])
+  @@map("posts")
+}
+
+// ============================================================
+// 발행 로그
+// ============================================================
+
+enum PublishStatus {
+  PENDING   // 대기
+  SUCCESS   // 성공
+  FAILED    // 실패
+}
+
+model PublishLog {
+  id           String        @id @default(cuid())
+  status       PublishStatus @default(PENDING)
+  publishedUrl String?       // 발행된 글 URL
+  errorMessage String?       // 실패 시 에러 메시지
+
+  postId     String
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  platformId String
+  platform   Platform @relation(fields: [platformId], references: [id])
+
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([postId])
+  @@index([platformId])
+  @@map("publish_logs")
+}
+
+// ============================================================
+// 키워드
+// ============================================================
+
+model Keyword {
+  id           String @id @default(cuid())
+  keyword      String
+  searchVolume Int?   // 검색량
+  competition  String? // 경쟁도 (높음/중간/낮음)
+
+  userId String
+  user   User @relation(fields: [userId], references: [id])
+
+  stats KeywordStat[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([keyword, userId])
+  @@map("keywords")
+}
+
+model KeywordStat {
+  id           String   @id @default(cuid())
+  date         DateTime @db.Date
+  rank         Int?     // 순위
+  searchVolume Int?     // 해당 날짜 검색량
+
+  keywordId String
+  keyword   Keyword @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+
+  @@unique([keywordId, date])
+  @@index([date])
+  @@map("keyword_stats")
+}
+
+// ============================================================
+// 설정
+// ============================================================
+
+model Setting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
