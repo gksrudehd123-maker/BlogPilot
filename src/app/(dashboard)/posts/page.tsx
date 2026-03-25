@@ -43,11 +43,30 @@ export default function PostsPage() {
     try {
       const res = await fetch('/api/platforms');
       const data = await res.json();
-      setPlatforms(data.filter((p: Platform) => {
-        if (p.type === 'BLOGSPOT') return !!p.credentials?.accessToken;
-        if (p.type === 'WORDPRESS') return !!p.credentials?.password;
-        return false;
-      }));
+      // 크레덴셜이 설정된 플랫폼만 표시
+      const filtered = await Promise.all(
+        data.map(async (p: Platform) => {
+          if (p.type === 'BLOGSPOT') return p.credentials?.accessToken ? p : null;
+          if (p.type === 'WORDPRESS') return p.credentials?.password ? p : null;
+          if (p.type === 'NAVER') {
+            // 세션 존재 여부 빠른 체크
+            try {
+              const sessionRes = await fetch(`/api/auth/session-check?platform=naver&quick=true`);
+              const session = await sessionRes.json();
+              return session.valid ? p : null;
+            } catch { return null; }
+          }
+          if (p.type === 'TISTORY') {
+            try {
+              const sessionRes = await fetch(`/api/auth/session-check?platform=tistory&quick=true`);
+              const session = await sessionRes.json();
+              return session.valid ? p : null;
+            } catch { return null; }
+          }
+          return null;
+        })
+      );
+      setPlatforms(filtered.filter(Boolean) as Platform[]);
     } catch {
       // 무시
     }
