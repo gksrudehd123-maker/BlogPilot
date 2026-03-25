@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getOrCreateDefaultUser } from '@/lib/auth-temp';
-import { publishPost as publishBlogspot } from '@/lib/platforms/blogspot';
-import { publishPost as publishWordpress } from '@/lib/platforms/wordpress';
-import { publishNaverPost } from '@/lib/browser/naver-automation';
-import { publishTistoryPost } from '@/lib/browser/tistory-automation';
+import { publish } from '@/lib/platforms/publish';
 
 // POST /api/publish
 // 선택한 플랫폼에 글 발행
@@ -51,42 +48,14 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      let publishedUrl: string | null | undefined;
+      const result = await publish(platform, title, content);
 
-      if (platform.type === 'BLOGSPOT') {
-        const result = await publishBlogspot(platformId, title, content);
-        publishedUrl = result.url;
-      } else if (platform.type === 'WORDPRESS') {
-        const result = await publishWordpress(platformId, title, content);
-        publishedUrl = result.url;
-      } else if (platform.type === 'NAVER') {
-        const result = await publishNaverPost(title, content);
-        publishedUrl = result.url;
-      } else if (platform.type === 'TISTORY') {
-        const creds = platform.credentials as Record<string, string> | null;
-        const blogName = creds?.blogName;
-        if (!blogName) {
-          throw new Error('티스토리 블로그 이름이 설정되지 않았습니다. 사이트 설정에서 블로그 이름을 입력해주세요.');
-        }
-        const result = await publishTistoryPost(blogName, title, content);
-        publishedUrl = result.url;
-      } else {
-        results.push({
-          platform: platform.name,
-          type: platform.type,
-          success: false,
-          error: '지원하지 않는 플랫폼입니다',
-        });
-        continue;
-      }
-
-      // 발행 로그 저장
       await prisma.publishLog.create({
         data: {
           postId: post.id,
           platformId: platform.id,
           status: 'SUCCESS',
-          publishedUrl: publishedUrl ?? null,
+          publishedUrl: result.url,
           publishedAt: new Date(),
         },
       });
@@ -95,7 +64,7 @@ export async function POST(request: NextRequest) {
         platform: platform.name,
         type: platform.type,
         success: true,
-        url: publishedUrl,
+        url: result.url,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : '발행에 실패했습니다';
@@ -118,7 +87,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // 모든 발행 결과에 따라 Post 상태 업데이트
+  // Post 상태 업데이트
   const anySuccess = results.some((r) => r.success);
 
   await prisma.post.update({

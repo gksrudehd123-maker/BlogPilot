@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { testConnection as testBlogspot } from '@/lib/platforms/blogspot';
-import { testConnection as testWordpress } from '@/lib/platforms/wordpress';
-import { testNaverConnection } from '@/lib/browser/naver-automation';
-import { testTistoryConnection } from '@/lib/browser/tistory-automation';
-import { checkSession } from '@/lib/browser/session-manager';
+import { prisma } from '@/lib/prisma';
+import { testConnection } from '@/lib/platforms/test-connection';
 
 // POST /api/platforms/test
 // 플랫폼 연결테스트
 export async function POST(request: NextRequest) {
-  const { platformId, type, blogName } = await request.json();
+  const { platformId } = await request.json();
 
   if (!platformId) {
     return NextResponse.json(
@@ -18,45 +15,18 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    let result;
+    const platform = await prisma.platform.findUnique({
+      where: { id: platformId },
+    });
 
-    if (type === 'BLOGSPOT') {
-      result = await testBlogspot(platformId);
-    } else if (type === 'WORDPRESS') {
-      result = await testWordpress(platformId);
-    } else if (type === 'NAVER') {
-      // 세션 체크 → 블로그 정보 조회
-      const session = await checkSession('naver');
-      if (!session.valid) {
-        return NextResponse.json({
-          success: false,
-          error: session.message,
-        });
-      }
-      const naverResult = await testNaverConnection();
-      result = { name: naverResult.blogId, url: naverResult.blogUrl };
-    } else if (type === 'TISTORY') {
-      if (!blogName) {
-        return NextResponse.json({
-          success: false,
-          error: '블로그 이름이 필요합니다.',
-        });
-      }
-      const session = await checkSession('tistory');
-      if (!session.valid) {
-        return NextResponse.json({
-          success: false,
-          error: session.message,
-        });
-      }
-      const tistoryResult = await testTistoryConnection(blogName);
-      result = { name: tistoryResult.blogName, url: tistoryResult.blogUrl };
-    } else {
+    if (!platform) {
       return NextResponse.json(
-        { error: '지원하지 않는 플랫폼입니다' },
-        { status: 400 },
+        { error: '플랫폼을 찾을 수 없습니다' },
+        { status: 404 },
       );
     }
+
+    const result = await testConnection(platform);
 
     return NextResponse.json({
       success: true,

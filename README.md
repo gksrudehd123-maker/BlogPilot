@@ -10,13 +10,12 @@
 
 ### 핵심 기능
 
-- **AI 글 생성**: Claude API 기반 고품질 한국어 콘텐츠 자동 생성
-- **다중 플랫폼 발행**: 네이버 블로그, 티스토리, 워드프레스, 블로그스팟 동시 발행
-- **이미지 자동 삽입**: AI 이미지 생성 (DALL-E) + 무료 스톡 이미지 (Unsplash)
-- **예약 발행**: 날짜/시간 지정 예약 + 반복 스케줄 설정
-- **키워드 리서치**: 네이버 검색량/경쟁도 분석, 추천 키워드 도출
-- **모바일 지원**: PWA로 모바일에서도 관리 가능
-- **데스크톱 앱**: Tauri로 .exe 설치 파일 생성 (Windows)
+- **AI 글 생성**: Claude API 기반 고품질 한국어 콘텐츠 자동 생성 ✅
+- **다중 플랫폼 발행**: 네이버 블로그, 티스토리, 워드프레스, 블로그스팟 ✅
+- **브라우저 자동화**: Playwright로 네이버/티스토리 자동 로그인 + 발행 ✅
+- **이미지 자동 삽입**: DALL-E + Unsplash (Phase C 예정)
+- **예약 발행**: 날짜/시간 지정 예약 + 반복 스케줄 (Phase C 예정)
+- **키워드 리서치**: 네이버 검색량/경쟁도 분석 (Phase D 예정)
 
 ---
 
@@ -24,10 +23,10 @@
 
 | 플랫폼 | 연동 방식 | 인증 | 글 작성 |
 |--------|----------|------|--------|
-| **워드프레스** | API (자체 REST API) | Application Password | ✅ 작성/수정/삭제, 미디어, 카테고리 |
-| **블로그스팟** | API (Google Blogger API) | Google OAuth 2.0 | ✅ 작성/수정/삭제, 라벨 |
-| **티스토리** | 브라우저 자동화 (Puppeteer) | 로컬 로그인 | ❌ API 종료 → Tauri 앱에서 자동화 |
-| **네이버 블로그** | 브라우저 자동화 (Puppeteer) | 로컬 로그인 | ❌ API 미지원 → Tauri 앱에서 자동화 |
+| **워드프레스** | REST API | Application Password | ✅ 발행 완료 |
+| **블로그스팟** | Google Blogger API | Google OAuth 2.0 | ✅ 발행 완료 |
+| **티스토리** | Playwright 브라우저 자동화 | 카카오 로그인 (쿠키) | ✅ dry run 완료 (로컬 전용) |
+| **네이버 블로그** | Playwright 브라우저 자동화 | 네이버 로그인 (쿠키) | ✅ dry run 완료 (로컬 전용) |
 
 ---
 
@@ -48,16 +47,12 @@
 | **Styling** | Tailwind CSS 3 + shadcn/ui | 유틸리티 CSS + Radix UI 기반 컴포넌트 |
 | **Database** | PostgreSQL (Supabase) | 매니지드 PostgreSQL |
 | **ORM** | Prisma 5 | Type-safe 데이터베이스 ORM |
-| **Auth** | NextAuth.js 4 | OAuth 2.0 + JWT 세션 |
 | **AI 글 생성** | Claude API (Anthropic) | 한국어 콘텐츠 생성 |
-| **AI 이미지** | DALL-E API (OpenAI) | AI 이미지 생성 |
-| **스톡 이미지** | Unsplash API | 무료 고품질 이미지 |
+| **브라우저 자동화** | Playwright | 네이버/티스토리 자동 발행 (로컬 전용) |
 | **Server State** | TanStack Query 5 | API 데이터 캐싱, 자동 갱신 |
 | **Toast** | sonner | 알림 토스트 UI |
 | **Theme** | next-themes | 다크모드/라이트모드/시스템 |
 | **Mobile** | PWA (next-pwa) | 모바일 앱처럼 설치 가능 |
-| **Desktop** | Tauri 2 | .exe 데스크톱 앱 (경량 ~5MB) |
-| **Charts** | Recharts 3 | 키워드 분석 차트 |
 
 ### 개발 도구
 
@@ -90,37 +85,15 @@ pnpm dev
 DATABASE_URL=postgresql://...
 DIRECT_URL=postgresql://...
 
-# App
-NEXT_PUBLIC_APP_NAME=BlogPilot
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-
-# NextAuth.js
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=...                # openssl rand -base64 32
-
 # AI - 글 생성
 ANTHROPIC_API_KEY=...              # Claude API
 
-# AI - 이미지 생성
-OPENAI_API_KEY=...                 # DALL-E API
-
-# 이미지 - 스톡
-UNSPLASH_ACCESS_KEY=...            # Unsplash API
-
-# 네이버 블로그
-NAVER_CLIENT_ID=...
-NAVER_CLIENT_SECRET=...
-
-# 티스토리
-TISTORY_APP_ID=...
-TISTORY_SECRET_KEY=...
-
-# 워드프레스 (사이트별 설정 — DB에서 관리)
-# WORDPRESS_SITE_URL, APPLICATION_PASSWORD 등은 UI에서 등록
-
-# 블로그스팟 (Google)
+# 블로그스팟 (Google OAuth)
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
+
+# 워드프레스 / 네이버 / 티스토리는 UI에서 계정 등록
+# 네이버/티스토리는 Playwright 브라우저 로그인으로 인증 (쿠키 저장)
 ```
 
 ---
@@ -160,23 +133,19 @@ GOOGLE_CLIENT_SECRET=...
 └─────────────────────────────────────────────────────────┘
 ```
 
-### 콘텐츠 생성 플로우
+### 콘텐츠 생성 플로우 (현재 구현)
 
 ```
-1. 키워드 리서치
-   └→ 네이버 검색 API → 검색량/경쟁도 분석 → 추천 키워드 선정
+1. AI 글 생성
+   └→ 키워드 + 프롬프트 + 톤/글자수 → Claude API → HTML 글 생성 → 미리보기/편집
 
-2. AI 글 생성
-   └→ 키워드 + 글 설정 (톤, 길이, 형식) → Claude API → 초안 생성 → 편집/확인
+2. 발행
+   └→ 플랫폼 선택 → 즉시 발행 → 결과(성공 URL / 실패 메시지) 표시
+   └→ 워드프레스/블로그스팟: API 호출
+   └→ 네이버/티스토리: Playwright 브라우저 자동화 (로컬 전용)
 
-3. 이미지 처리
-   └→ AI 생성 (DALL-E) 또는 Unsplash 검색 → 자동 삽입
-
-4. 발행
-   └→ 즉시 발행 or 예약 발행 → 플랫폼별 API 호출 → 결과 저장
-
-5. 모니터링
-   └→ 발행 이력 조회, 성공/실패 확인, 통계 대시보드
+3. 발행 로그 저장
+   └→ Post + PublishLog DB 저장 (성공/실패 상태, URL, 에러 메시지)
 ```
 
 ### 디렉토리 구조
@@ -186,57 +155,55 @@ BlogPilot/
 ├── public/                         # 정적 파일 + PWA 매니페스트
 ├── prisma/
 │   └── schema.prisma               # DB 스키마
+├── cookies/                        # 브라우저 로그인 세션 (.gitignore)
+├── scripts/                        # 테스트/분석 스크립트
 ├── src/
 │   ├── app/
 │   │   ├── (dashboard)/            # 대시보드 레이아웃 그룹
-│   │   │   ├── page.tsx            # 통계 (발행 현황, KPI)
-│   │   │   ├── posts/              # 글쓰기
-│   │   │   ├── schedule/           # 예약 발행 관리
+│   │   │   ├── page.tsx            # 대시보드 (KPI — 미연동)
+│   │   │   ├── posts/              # 글쓰기 + AI 생성 + 발행
+│   │   │   ├── schedule/           # 예약 발행 (미구현)
+│   │   │   ├── platforms/          # (redirect → settings/sites)
 │   │   │   ├── keywords/
-│   │   │   │   ├── analysis/       # 키워드분석
-│   │   │   │   └── search/         # 키워드검색
+│   │   │   │   ├── analysis/       # 키워드분석 (미구현)
+│   │   │   │   └── search/         # 키워드검색 (미구현)
 │   │   │   └── settings/
 │   │   │       ├── sites/          # 사이트 설정 (4개 플랫폼 계정 관리)
-│   │   │       ├── ai/             # AI 설정 (Claude, DALL-E, Unsplash)
+│   │   │       ├── ai/             # AI 설정 (글쓰기 AI / 이미지 AI)
 │   │   │       └── writing/        # 글쓰기 설정
-│   │   ├── api/
-│   │   │   ├── auth/               # 인증 (NextAuth)
-│   │   │   ├── posts/              # 글 CRUD + AI 생성
-│   │   │   ├── publish/            # 플랫폼별 발행
-│   │   │   ├── schedule/           # 예약 발행 스케줄러
-│   │   │   ├── keywords/           # 키워드 리서치 API
-│   │   │   ├── images/             # 이미지 생성/검색
-│   │   │   └── platforms/          # 플랫폼 계정 관리
-│   │   ├── login/
-│   │   └── register/
+│   │   └── api/
+│   │       ├── auth/
+│   │       │   ├── google/         # 블로그스팟 Google OAuth
+│   │       │   ├── callback/google # OAuth 콜백
+│   │       │   ├── browser-login/  # Playwright 수동 로그인
+│   │       │   └── session-check/  # 세션 유효성 체크
+│   │       ├── posts/generate/     # AI 글 생성 (Claude API)
+│   │       ├── publish/            # 4개 플랫폼 발행
+│   │       └── platforms/          # 플랫폼 계정 CRUD + 연결테스트
 │   ├── components/
 │   │   ├── ui/                     # shadcn/ui 컴포넌트
 │   │   ├── layout/                 # 사이드바, 헤더
-│   │   ├── editor/                 # 글 편집기 (마크다운/WYSIWYG)
-│   │   └── common/                 # 공통 컴포넌트
+│   │   └── providers/              # ThemeProvider, QueryProvider
 │   └── lib/
 │       ├── prisma.ts
-│       ├── auth.ts                 # NextAuth 설정
+│       ├── auth-temp.ts            # 임시 인증 헬퍼 (Phase E에서 NextAuth로 교체)
+│       ├── google-oauth.ts         # 블로그스팟 Google OAuth
 │       ├── ai/
-│       │   ├── claude.ts           # Claude API 클라이언트
-│       │   └── dalle.ts            # DALL-E API 클라이언트
-│       ├── platforms/              # 플랫폼별 어댑터
-│       │   ├── naver.ts            # 네이버 블로그 API
-│       │   ├── tistory.ts          # 티스토리 API
-│       │   ├── wordpress.ts        # 워드프레스 API
-│       │   └── blogspot.ts         # 블로그스팟 API
-│       ├── keywords/
-│       │   └── research.ts         # 키워드 분석 로직
-│       └── services/
-│           ├── post-generator.ts   # AI 글 생성 서비스
-│           ├── image-service.ts    # 이미지 처리 서비스
-│           └── scheduler.ts        # 예약 발행 스케줄러
-├── .env.example
+│       │   └── claude.ts           # Claude API 클라이언트
+│       ├── platforms/              # 플랫폼 발행/테스트
+│       │   ├── publish.ts          # 공통 발행 함수 (4개 플랫폼 분기)
+│       │   ├── test-connection.ts  # 공통 연결 테스트 함수
+│       │   ├── blogspot.ts         # 블로그스팟 Blogger API
+│       │   └── wordpress.ts        # 워드프레스 REST API
+│       └── browser/                # Playwright 브라우저 자동화 (로컬 전용)
+│           ├── session-manager.ts  # 쿠키 저장/로드/세션 체크
+│           ├── naver-automation.ts # 네이버 SmartEditor 자동화
+│           └── tistory-automation.ts # 티스토리 TinyMCE 자동화
 ├── package.json
 └── README.md
 ```
 
-### 데이터 모델 (예정)
+### 데이터 모델
 
 ```
 ┌──────────────────┐     ┌──────────────────┐
@@ -281,32 +248,13 @@ Platform Type: NAVER | TISTORY | WORDPRESS | BLOGSPOT
 
 ## 배포 환경
 
-| 구분 | 서비스 | 설명 |
+현재 로컬 개발 환경에서 운영 중. Phase E에서 Vercel 배포 예정.
+
+| 구분 | 서비스 | 상태 |
 |------|--------|------|
-| **Frontend + API** | Vercel | Next.js 서버리스 배포 |
-| **Database** | Supabase | 매니지드 PostgreSQL |
-| **예약 발행** | Vercel Cron Jobs | 매 분/시간 예약 글 체크 + 발행 |
-| **도메인** | 추후 설정 | 커스텀 도메인 연결 |
-
-```
-GitHub Push → Vercel Auto Deploy (main branch → Production)
-```
-
-### 멀티 플랫폼 배포
-
-```
-하나의 Next.js 코드베이스로 3가지 환경 커버:
-
-웹       → Vercel 배포 (브라우저 접속)
-모바일   → PWA (홈 화면에 추가 → 네이티브 앱처럼 사용)
-데스크톱 → Tauri (.exe 설치 파일 → Windows 앱)
-```
-
-| 환경 | 방식 | 특징 |
-|------|------|------|
-| **웹** | Vercel 배포 | URL 접속, 설치 불필요 |
-| **모바일** | PWA | 홈 화면 추가, 오프라인 지원, 푸시 알림 |
-| **데스크톱** | Tauri (.exe) | 경량 설치 (~5MB), 트레이 아이콘, 시스템 알림, 자동 업데이트 |
+| **Database** | Supabase (서울 리전) | ✅ 운영 중 |
+| **Frontend + API** | 로컬 (localhost:3000) | Phase E에서 Vercel 배포 |
+| **브라우저 자동화** | 로컬 Playwright | 네이버/티스토리 발행 (Vercel 불가) |
 
 ---
 
@@ -476,10 +424,10 @@ GitHub Push → Vercel Auto Deploy (main branch → Production)
 - [x] 글쓰기 UI에서 네이버/티스토리 세션 있으면 플랫폼 목록에 표시
 - [x] 에러 처리 및 응답 형식 정리
 
-#### A-5. 공통 어댑터 패턴 리팩토링
-- [ ] 플랫폼 어댑터 인터페이스 정의 (publish, test, getStatus)
-- [ ] 4개 플랫폼 어댑터 구현 (wordpress, blogspot, naver, tistory)
-- [ ] /api/publish에서 어댑터 패턴으로 분기
+#### A-5. 발행 함수 시그니처 통일 (완료)
+- [x] 공통 publish(platform, title, content) 함수 (platforms/publish.ts)
+- [x] 공통 testConnection(platform) 함수 (platforms/test-connection.ts)
+- [x] /api/publish, /api/platforms/test에서 공통 함수 사용으로 교체
 
 #### A-6. 사이트 설정 UI 개선
 - [ ] 네이버/티스토리 "브라우저 로그인" 버튼 추가
