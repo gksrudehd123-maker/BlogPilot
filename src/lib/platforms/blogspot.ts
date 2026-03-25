@@ -62,6 +62,32 @@ async function getBloggerClient(platformId: string) {
 }
 
 /**
+ * 글 발행
+ */
+export async function publishPost(
+  platformId: string,
+  title: string,
+  content: string,
+  labels?: string[],
+) {
+  const { blogger, blogId } = await getBloggerClient(platformId);
+
+  const res = await blogger.posts.insert({
+    blogId,
+    requestBody: {
+      title,
+      content,
+      labels,
+    },
+  });
+
+  return {
+    url: res.data.url,
+    postId: res.data.id,
+  };
+}
+
+/**
  * 연결테스트 — 블로그 정보 조회
  */
 export async function testConnection(platformId: string) {

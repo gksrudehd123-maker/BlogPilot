@@ -468,20 +468,23 @@ GitHub Push → Vercel Auto Deploy (main branch → Production)
 - [x] 이미지 AI: DALL-E 설정 + Unsplash 설정 (별도 카드)
 - [x] 사이드바 메뉴 업데이트 (글쓰기 AI / 이미지 AI)
 
-#### 3-2. Claude API 연동
-- [ ] Claude API 클라이언트 구현 (키워드 + 프롬프트 → 블로그 글 생성)
-- [ ] 글 생성 API (/api/posts/generate)
+#### 3-2. Claude API 연동 (완료 — 네트워크 테스트 필요)
+- [x] Claude API 클라이언트 구현 (키워드 + 프롬프트 → 블로그 글 생성, fetch 방식)
+- [x] 글 생성 API (/api/posts/generate)
+- [ ] Claude API 연결 테스트 (Node.js → api.anthropic.com 방화벽 확인 필요)
 
-#### 3-3. 글쓰기 페이지 UI
-- [ ] 키워드 입력 + 프롬프트 선택 + 글 설정
-- [ ] AI 글 생성 + 미리보기/편집
+#### 3-3. 글쓰기 페이지 UI (완료 — 네트워크 테스트 필요)
+- [x] 키워드 입력 + 프롬프트 선택 + 톤/글자수 설정
+- [x] AI 글 생성 + 미리보기/편집 + 복사 기능
+- [x] 발행 플랫폼 선택 UI (연동된 블로그스팟/워드프레스 목록)
 - [ ] 글 저장 (초안 — Post 테이블)
 
-#### 3-4. 발행 기능
-- [ ] 블로그스팟 발행 (Blogger API)
-- [ ] 워드프레스 발행 (REST API)
-- [ ] 발행 API (/api/publish) + 플랫폼 선택 UI
-- [ ] 발행 결과 표시 (성공 URL / 실패 메시지)
+#### 3-4. 발행 기능 (완료 — 네트워크 테스트 필요)
+- [x] 블로그스팟 발행 (Blogger API)
+- [x] 워드프레스 발행 (REST API)
+- [x] 발행 API (/api/publish) + 플랫폼 선택 UI
+- [x] 발행 결과 표시 (성공 URL / 실패 메시지)
+- [x] 발행 로그 DB 저장 (PublishLog 테이블)
 
 ### Phase 4 - 이미지 처리
 - [ ] DALL-E API 연동 (AI 이미지 생성)

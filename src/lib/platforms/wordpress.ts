@@ -34,6 +34,43 @@ function getAuthHeader(username: string, password: string) {
 }
 
 /**
+ * 글 발행
+ */
+export async function publishPost(
+  platformId: string,
+  title: string,
+  content: string,
+) {
+  const creds = await getCredentials(platformId);
+  const siteUrl = creds.siteUrl.replace(/\/+$/, '');
+
+  const res = await wpFetch(`${siteUrl}/wp-json/wp/v2/posts`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: getAuthHeader(creds.username, creds.password),
+    },
+    body: JSON.stringify({
+      title,
+      content,
+      status: 'publish',
+    }),
+  });
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error?.message || `발행 실패: HTTP ${res.status}`);
+  }
+
+  const post = await res.json();
+
+  return {
+    url: post.link,
+    postId: String(post.id),
+  };
+}
+
+/**
  * 연결테스트 — 사이트 정보 + 인증 확인
  */
 export async function testConnection(platformId: string) {
