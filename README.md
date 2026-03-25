@@ -460,12 +460,28 @@ GitHub Push → Vercel Auto Deploy (main branch → Production)
 - [ ] 비밀번호/인증정보 AES 암호화 저장 → Phase 8 (배포/보안) 시점
 - [ ] 에러 처리 고도화 (중복 계정, 필수값 검증 등) → 플랫폼 연동하면서 점진적 추가
 
-### Phase 3 - AI 글 생성
-- [ ] Claude API 연동 (글 생성 서비스)
-- [ ] 글 생성 설정 UI (키워드, 톤, 길이, 형식, 타겟 독자)
-- [ ] 글 생성 프롬프트 템플릿 관리
-- [ ] 생성된 글 미리보기 + 편집기 (마크다운/WYSIWYG)
-- [ ] 글 저장 (초안 관리)
+### Phase 3 - AI 글 생성 + 발행
+
+#### 3-1. AI 설정 페이지 리디자인 (완료)
+- [x] AI 설정을 별도 페이지로 분리 (/settings/ai/writing, /settings/ai/image)
+- [x] 글쓰기 AI: Claude API 설정 + 프롬프트 관리 (추가/수정/삭제, 변수 지원)
+- [x] 이미지 AI: DALL-E 설정 + Unsplash 설정 (별도 카드)
+- [x] 사이드바 메뉴 업데이트 (글쓰기 AI / 이미지 AI)
+
+#### 3-2. Claude API 연동
+- [ ] Claude API 클라이언트 구현 (키워드 + 프롬프트 → 블로그 글 생성)
+- [ ] 글 생성 API (/api/posts/generate)
+
+#### 3-3. 글쓰기 페이지 UI
+- [ ] 키워드 입력 + 프롬프트 선택 + 글 설정
+- [ ] AI 글 생성 + 미리보기/편집
+- [ ] 글 저장 (초안 — Post 테이블)
+
+#### 3-4. 발행 기능
+- [ ] 블로그스팟 발행 (Blogger API)
+- [ ] 워드프레스 발행 (REST API)
+- [ ] 발행 API (/api/publish) + 플랫폼 선택 UI
+- [ ] 발행 결과 표시 (성공 URL / 실패 메시지)
 
 ### Phase 4 - 이미지 처리
 - [ ] DALL-E API 연동 (AI 이미지 생성)

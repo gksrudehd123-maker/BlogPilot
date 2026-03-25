@@ -33,7 +33,8 @@ const navGroups: NavGroup[] = [
     icon: Settings,
     children: [
       { href: '/settings/sites', label: '사이트 설정' },
-      { href: '/settings/ai', label: 'AI 설정' },
+      { href: '/settings/ai/writing', label: '글쓰기 AI' },
+      { href: '/settings/ai/image', label: '이미지 AI' },
       { href: '/settings/writing', label: '글쓰기 설정' },
     ],
   },
