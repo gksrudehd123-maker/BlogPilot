@@ -429,10 +429,11 @@ Platform Type: NAVER | TISTORY | WORDPRESS | BLOGSPOT
 - [x] 공통 testConnection(platform) 함수 (platforms/test-connection.ts)
 - [x] /api/publish, /api/platforms/test에서 공통 함수 사용으로 교체
 
-#### A-6. 사이트 설정 UI 개선
-- [ ] 네이버/티스토리 "브라우저 로그인" 버튼 추가
-- [ ] 세션 상태 표시 (✅ 연결됨 / ⚠️ 재로그인 필요)
-- [ ] 연결테스트 기능 통합
+#### A-6. 사이트 설정 UI 개선 (완료)
+- [x] 네이버/티스토리 "브라우저 로그인" 버튼 추가
+- [x] 세션 상태 표시 (🟢 로그인됨 / ⚪ 로그인 필요)
+- [x] 네이버/티스토리 폼 필드 정리 (불필요한 아이디/비밀번호 제거)
+- [x] 안내 메시지 현행화 ("데스크톱 앱" → "Playwright 브라우저 자동화")
 
 ### Phase B - 글 관리 기반
 > 글 저장/관리 CRUD + 발행 이력 조회 + 설정 저장 기능.

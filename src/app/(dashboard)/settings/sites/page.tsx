@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Globe, Trash2, Plug, ChevronDown, Loader2 } from 'lucide-react';
+import { Globe, Trash2, Plug, ChevronDown, Loader2, Monitor } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Platform {
@@ -23,10 +23,7 @@ const platformOptions = [
 
 const platformFields: Record<string, { label: string; key: string; type?: string; placeholder: string }[]> = {
   NAVER: [
-    { label: '도메인', key: 'domain', placeholder: '블로그 도메인 (예: myblog)' },
-    { label: '아이디', key: 'username', placeholder: '네이버 아이디' },
-    { label: '비밀번호', key: 'password', type: 'password', placeholder: '비밀번호' },
-    { label: '카테고리', key: 'category', placeholder: '기본 카테고리' },
+    { label: '카테고리', key: 'category', placeholder: '기본 카테고리 (선택)' },
   ],
   WORDPRESS: [
     { label: '사이트 URL', key: 'siteUrl', placeholder: 'https://your-site.com' },
@@ -39,17 +36,15 @@ const platformFields: Record<string, { label: string; key: string; type?: string
     { label: '라벨', key: 'label', placeholder: '기본 라벨' },
   ],
   TISTORY: [
-    { label: '블로그명', key: 'blogName', placeholder: '티스토리 블로그명' },
-    { label: '아이디', key: 'username', placeholder: '카카오 계정 이메일' },
-    { label: '비밀번호', key: 'password', type: 'password', placeholder: '비밀번호' },
-    { label: '카테고리', key: 'category', placeholder: '기본 카테고리' },
+    { label: '블로그명', key: 'blogName', placeholder: '블로그 주소명 (예: handongmoa)' },
+    { label: '카테고리', key: 'category', placeholder: '기본 카테고리 (선택)' },
   ],
 };
 
 const platformNotes: Record<string, string> = {
-  BLOGSPOT: 'Google OAuth 2.0으로 인증합니다. 연결테스트 시 Google 로그인이 필요합니다.',
-  TISTORY: '티스토리 API가 종료되어 브라우저 자동화로 발행합니다. 데스크톱 앱에서만 사용 가능합니다.',
-  NAVER: '네이버 블로그는 API를 지원하지 않아 브라우저 자동화로 발행합니다. 데스크톱 앱에서만 사용 가능합니다.',
+  BLOGSPOT: 'Google OAuth 2.0으로 인증합니다. 계정 저장 후 Google 계정 연동을 진행하세요.',
+  TISTORY: 'Playwright 브라우저 자동화로 발행합니다. 아래 "브라우저 로그인" 버튼으로 카카오 로그인이 필요합니다.',
+  NAVER: 'Playwright 브라우저 자동화로 발행합니다. 아래 "브라우저 로그인" 버튼으로 네이버 로그인이 필요합니다.',
 };
 
 export default function SiteSettingsPage() {
@@ -61,6 +56,8 @@ export default function SiteSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [browserLogin, setBrowserLogin] = useState(false);
+  const [sessionStatus, setSessionStatus] = useState<Record<string, { valid: boolean; message: string }>>({});
   const searchParams = useSearchParams();
 
   // OAuth 콜백 결과 처리
@@ -98,9 +95,59 @@ export default function SiteSettingsPage() {
     }
   }, []);
 
+  // 네이버/티스토리 세션 상태 체크
+  const checkBrowserSession = useCallback(async (platform: 'naver' | 'tistory') => {
+    try {
+      const res = await fetch(`/api/auth/session-check?platform=${platform}&quick=true`);
+      const data = await res.json();
+      setSessionStatus((prev) => ({ ...prev, [platform]: data }));
+    } catch {
+      setSessionStatus((prev) => ({
+        ...prev,
+        [platform]: { valid: false, message: '세션 확인 실패' },
+      }));
+    }
+  }, []);
+
+  // 브라우저 로그인 실행
+  const handleBrowserLogin = async (platform: 'naver' | 'tistory') => {
+    setBrowserLogin(true);
+    const blogName = platform === 'tistory' ? formData.blogName : undefined;
+
+    if (platform === 'tistory' && !blogName) {
+      toast.error('블로그명을 먼저 입력하세요');
+      setBrowserLogin(false);
+      return;
+    }
+
+    toast.info('브라우저가 열립니다. 로그인을 완료해주세요.');
+
+    try {
+      const res = await fetch('/api/auth/browser-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform, blogName }),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success(data.message);
+        await checkBrowserSession(platform);
+      } else {
+        toast.error(data.error);
+      }
+    } catch {
+      toast.error('브라우저 로그인에 실패했습니다');
+    } finally {
+      setBrowserLogin(false);
+    }
+  };
+
   useEffect(() => {
     fetchPlatforms();
-  }, [fetchPlatforms]);
+    checkBrowserSession('naver');
+    checkBrowserSession('tistory');
+  }, [fetchPlatforms, checkBrowserSession]);
 
   // 계정 선택 시 폼에 데이터 로드
   useEffect(() => {
@@ -392,6 +439,47 @@ export default function SiteSettingsPage() {
           <p className="mt-4 text-xs text-muted-foreground">
             먼저 계정을 설정저장한 뒤 Google 계정 연동을 진행하세요.
           </p>
+        )}
+
+        {/* 네이버/티스토리 브라우저 로그인 + 세션 상태 */}
+        {(selectedPlatform === 'NAVER' || selectedPlatform === 'TISTORY') && (
+          <div className="mt-4 rounded-lg border border-border bg-muted/30 p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className={`h-2 w-2 rounded-full ${
+                  sessionStatus[selectedPlatform.toLowerCase()]?.valid ? 'bg-green-500' : 'bg-gray-400'
+                }`} />
+                <span className="text-sm">
+                  {sessionStatus[selectedPlatform.toLowerCase()]?.valid
+                    ? `${selectedPlatform === 'NAVER' ? '네이버' : '티스토리'} 로그인됨`
+                    : `${selectedPlatform === 'NAVER' ? '네이버' : '티스토리'} 로그인 필요`
+                  }
+                </span>
+              </div>
+              <button
+                onClick={() => handleBrowserLogin(selectedPlatform.toLowerCase() as 'naver' | 'tistory')}
+                disabled={browserLogin}
+                className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                {browserLogin ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Monitor className="h-3.5 w-3.5" />
+                )}
+                {browserLogin ? '로그인 중...' : '브라우저 로그인'}
+              </button>
+            </div>
+            {sessionStatus[selectedPlatform.toLowerCase()]?.valid && (
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                세션이 유효합니다. 글 발행이 가능합니다.
+              </p>
+            )}
+            {!sessionStatus[selectedPlatform.toLowerCase()]?.valid && (
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                브라우저 로그인 버튼을 클릭하면 Chromium 브라우저가 열립니다. 직접 로그인해주세요.
+              </p>
+            )}
+          </div>
         )}
 
         {/* 액션 버튼 */}
