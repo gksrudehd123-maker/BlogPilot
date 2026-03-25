@@ -427,15 +427,37 @@ GitHub Push → Vercel Auto Deploy (main branch → Production)
 - [x] 글쓰기 설정 페이지 (인라인 폼 — 포스트 개수, 글자수, 대기시간)
 - [x] 기존 /platforms, /keywords, /settings → 새 경로로 redirect
 
-### Phase 2 - 플랫폼 연동 (API 방식 — 블로그스팟 우선)
-> 블로그스팟(Google Blogger API)과 워드프레스(자체 REST API)만 공식 API 지원.
+### Phase 2 - 플랫폼 연동
+> 워드프레스(자체 REST API)와 블로그스팟(Google Blogger API)만 공식 API 지원.
 > 티스토리(API 종료)와 네이버 블로그(API 미지원)는 Phase 9에서 브라우저 자동화로 구현.
+> 각 플랫폼을 개별 연동한 뒤, 공통 어댑터 패턴으로 리팩토링하는 순서로 진행.
 
-- [ ] 플랫폼별 어댑터 패턴 구현 (공통 인터페이스: connect, publish, edit, delete)
-- [ ] 플랫폼 계정 관리 API + UI (등록/수정/삭제/연동 상태)
-- [ ] 블로그스팟 API 연동 (Google OAuth + Blogger API + 글 발행 + 라벨) — 가장 먼저
-- [ ] 블로그스팟 글 발행 테스트 UI (제목/본문 입력 → 발행 → 블로그에서 확인)
+#### 2-1. 계정 관리 기반 (완료)
+- [x] Prisma 스키마 확인/보완
+- [x] 플랫폼 계정 CRUD API (POST/GET/PUT/DELETE /api/platforms)
+- [x] 사이트 설정 UI에 API 연동 (계정 저장/조회/수정/삭제 동작)
+- [x] 임시 인증 헬퍼 (Phase 8에서 NextAuth로 교체 예정)
+
+#### 2-2. 블로그스팟 연동 (진행 중)
+- [x] Google OAuth 2.0 플로우 (인증 URL → 콜백 → 토큰 저장/갱신)
+- [x] Blogger API 클라이언트 (토큰 자동 갱신 포함)
+- [x] 블로그스팟 연결테스트 기능
+- [ ] 블로그스팟 글 발행 테스트
+
+#### 2-3. 워드프레스 연동
 - [ ] 워드프레스 REST API 연동 (Application Password + 글 발행 + 미디어)
+- [ ] 워드프레스 연결테스트 기능
+- [ ] 워드프레스 글 발행 테스트
+
+#### 2-4. 네이버/티스토리 계정 저장
+- [ ] 네이버/티스토리 계정 정보 저장 UI 동작 (발행은 Phase 9)
+
+#### 2-5. 공통 어댑터 패턴 리팩토링
+- [ ] 플랫폼별 어댑터 패턴 추출 (공통 인터페이스: connect, publish, edit, delete)
+
+#### 2-deferred. Phase 2에서 보류한 항목 (이후 Phase에서 처리)
+- [ ] 비밀번호/인증정보 AES 암호화 저장 → Phase 8 (배포/보안) 시점
+- [ ] 에러 처리 고도화 (중복 계정, 필수값 검증 등) → 플랫폼 연동하면서 점진적 추가
 
 ### Phase 3 - AI 글 생성
 - [ ] Claude API 연동 (글 생성 서비스)
