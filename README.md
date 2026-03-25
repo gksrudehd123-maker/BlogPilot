@@ -179,7 +179,7 @@ GOOGLE_CLIENT_SECRET=...
    └→ 발행 이력 조회, 성공/실패 확인, 통계 대시보드
 ```
 
-### 디렉토리 구조 (예정)
+### 디렉토리 구조
 
 ```
 BlogPilot/
@@ -189,12 +189,16 @@ BlogPilot/
 ├── src/
 │   ├── app/
 │   │   ├── (dashboard)/            # 대시보드 레이아웃 그룹
-│   │   │   ├── page.tsx            # 메인 대시보드 (발행 현황, 통계)
-│   │   │   ├── posts/              # 글 관리 (생성, 목록, 편집)
+│   │   │   ├── page.tsx            # 통계 (발행 현황, KPI)
+│   │   │   ├── posts/              # 글쓰기
 │   │   │   ├── schedule/           # 예약 발행 관리
-│   │   │   ├── keywords/           # 키워드 리서치
-│   │   │   ├── platforms/          # 플랫폼 연동 관리
-│   │   │   └── settings/           # 설정 (프로필, AI, 플랫폼 계정)
+│   │   │   ├── keywords/
+│   │   │   │   ├── analysis/       # 키워드분석
+│   │   │   │   └── search/         # 키워드검색
+│   │   │   └── settings/
+│   │   │       ├── sites/          # 사이트 설정 (4개 플랫폼 계정 관리)
+│   │   │       ├── ai/             # AI 설정 (Claude, DALL-E, Unsplash)
+│   │   │       └── writing/        # 글쓰기 설정
 │   │   ├── api/
 │   │   │   ├── auth/               # 인증 (NextAuth)
 │   │   │   ├── posts/              # 글 CRUD + AI 생성
@@ -413,6 +417,15 @@ GitHub Push → Vercel Auto Deploy (main branch → Production)
 - [x] 빈 상태 페이지 6개 (대시보드, 글 관리, 예약 발행, 키워드, 플랫폼, 설정)
 - [x] 공통 유틸 (ThemeProvider, QueryProvider, ProgressBar, sonner Toast)
 - [x] Pretendard 폰트 + Blue primary 디자인 시스템
+
+### Phase 1.5 - UI 리디자인 (완료)
+- [x] 다크 테마 기본 적용 + 시안 블루 포인트 컬러
+- [x] 사이드바 트리 구조 리팩토링 (설정/키워드/글쓰기 그룹 + 통계)
+- [x] 라우트 구조 재배치 (settings/sites, settings/ai, settings/writing, keywords/analysis, keywords/search)
+- [x] 사이트 설정 페이지 (4개 플랫폼 드롭다운 + 계정 관리 폼 + 연결테스트)
+- [x] AI 설정 페이지 (Claude/DALL-E/Unsplash 탭 전환)
+- [x] 글쓰기 설정 페이지 (인라인 폼 — 포스트 개수, 글자수, 대기시간)
+- [x] 기존 /platforms, /keywords, /settings → 새 경로로 redirect
 
 ### Phase 2 - 플랫폼 연동 (API 방식 — 블로그스팟 우선)
 > 블로그스팟(Google Blogger API)과 워드프레스(자체 REST API)만 공식 API 지원.

@@ -13,7 +13,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">대시보드</h1>
+        <h1 className="text-2xl font-semibold">통계</h1>
         <p className="text-sm text-muted-foreground">
           발행 현황과 통계를 한눈에 확인합니다
         </p>

@@ -3,33 +3,158 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard,
-  FileText,
-  CalendarClock,
-  Search,
-  Link2,
   Settings,
+  PenLine,
+  Search,
+  BarChart3,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Menu,
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 
-const navItems = [
-  { href: '/', label: '대시보드', icon: LayoutDashboard },
-  { href: '/posts', label: '글 관리', icon: FileText },
-  { href: '/schedule', label: '예약 발행', icon: CalendarClock },
-  { href: '/keywords', label: '키워드 리서치', icon: Search },
-  { href: '/platforms', label: '플랫폼 관리', icon: Link2 },
-  { href: '/settings', label: '설정', icon: Settings },
+interface NavChild {
+  href: string;
+  label: string;
+}
+
+interface NavGroup {
+  label: string;
+  icon: React.ElementType;
+  children: NavChild[];
+}
+
+const navGroups: NavGroup[] = [
+  {
+    label: '설정',
+    icon: Settings,
+    children: [
+      { href: '/settings/sites', label: '사이트 설정' },
+      { href: '/settings/ai', label: 'AI 설정' },
+      { href: '/settings/writing', label: '글쓰기 설정' },
+    ],
+  },
+  {
+    label: '키워드',
+    icon: Search,
+    children: [
+      { href: '/keywords/analysis', label: '키워드분석' },
+      { href: '/keywords/search', label: '키워드검색' },
+    ],
+  },
+  {
+    label: '글쓰기',
+    icon: PenLine,
+    children: [
+      { href: '/posts', label: '글쓰기' },
+    ],
+  },
 ];
+
+function TreeNav({
+  collapsed,
+  pathname,
+  openGroups,
+  toggleGroup,
+}: {
+  collapsed: boolean;
+  pathname: string;
+  openGroups: Record<string, boolean>;
+  toggleGroup: (label: string) => void;
+}) {
+  return (
+    <nav className="flex-1 space-y-1 p-2">
+      {navGroups.map((group) => {
+        const isGroupActive = group.children.some(
+          (child) => pathname.startsWith(child.href)
+        );
+        const isOpen = openGroups[group.label] ?? isGroupActive;
+
+        return (
+          <div key={group.label}>
+            {/* 그룹 헤더 */}
+            <button
+              onClick={() => toggleGroup(group.label)}
+              className={cn(
+                'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                isGroupActive
+                  ? 'text-primary'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                collapsed && 'justify-center px-2',
+              )}
+              title={collapsed ? group.label : undefined}
+            >
+              <group.icon className="h-5 w-5 shrink-0" />
+              {!collapsed && (
+                <>
+                  <span className="flex-1 text-left">{group.label}</span>
+                  <ChevronDown
+                    className={cn(
+                      'h-3.5 w-3.5 transition-transform',
+                      isOpen && 'rotate-180',
+                    )}
+                  />
+                </>
+              )}
+            </button>
+
+            {/* 하위 메뉴 */}
+            {!collapsed && isOpen && (
+              <div className="ml-4 mt-0.5 space-y-0.5 border-l border-border pl-3">
+                {group.children.map((child) => {
+                  const isActive = pathname.startsWith(child.href);
+                  return (
+                    <Link
+                      key={child.href}
+                      href={child.href}
+                      className={cn(
+                        'block rounded-md px-3 py-1.5 text-sm transition-colors',
+                        isActive
+                          ? 'bg-primary/10 text-primary font-medium'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                      )}
+                    >
+                      {child.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* 통계 (단독 메뉴) */}
+      <Link
+        href="/"
+        className={cn(
+          'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+          pathname === '/'
+            ? 'text-primary'
+            : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+          collapsed && 'justify-center px-2',
+        )}
+        title={collapsed ? '통계' : undefined}
+      >
+        <BarChart3 className="h-5 w-5 shrink-0" />
+        {!collapsed && <span>통계</span>}
+      </Link>
+    </nav>
+  );
+}
 
 export function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+
+  const toggleGroup = (label: string) => {
+    setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }));
+  };
 
   useEffect(() => {
     if (mobileOpen) {
@@ -44,6 +169,15 @@ export function Sidebar() {
 
   useEffect(() => {
     setMobileOpen(false);
+  }, [pathname]);
+
+  // 현재 경로에 해당하는 그룹 자동 열기
+  useEffect(() => {
+    navGroups.forEach((group) => {
+      if (group.children.some((child) => pathname.startsWith(child.href))) {
+        setOpenGroups((prev) => ({ ...prev, [group.label]: true }));
+      }
+    });
   }, [pathname]);
 
   return (
@@ -95,31 +229,20 @@ export function Sidebar() {
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1 p-2">
-          {navItems.map((item) => {
-            const isActive =
-              item.href === '/'
-                ? pathname === '/'
-                : pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
-                  isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                  collapsed && 'justify-center px-2',
-                )}
-                title={collapsed ? item.label : undefined}
-              >
-                <item.icon className="h-5 w-5 shrink-0" />
-                {!collapsed && <span>{item.label}</span>}
-              </Link>
-            );
-          })}
-        </nav>
+        <div className="px-3 pt-3">
+          {!collapsed && (
+            <p className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              메뉴
+            </p>
+          )}
+        </div>
+
+        <TreeNav
+          collapsed={collapsed}
+          pathname={pathname}
+          openGroups={openGroups}
+          toggleGroup={toggleGroup}
+        />
       </aside>
 
       {/* 모바일 사이드바 */}
@@ -142,29 +265,18 @@ export function Sidebar() {
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1 p-2">
-          {navItems.map((item) => {
-            const isActive =
-              item.href === '/'
-                ? pathname === '/'
-                : pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
-                  isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                )}
-              >
-                <item.icon className="h-5 w-5 shrink-0" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
+        <div className="px-3 pt-3">
+          <p className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            메뉴
+          </p>
+        </div>
+
+        <TreeNav
+          collapsed={false}
+          pathname={pathname}
+          openGroups={openGroups}
+          toggleGroup={toggleGroup}
+        />
       </aside>
     </>
   );
