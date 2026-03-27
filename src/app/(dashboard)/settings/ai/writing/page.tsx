@@ -1,11 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bot, Plug, Plus, Pencil, Trash2, ChevronDown, Loader2, Save, Sparkles } from 'lucide-react';
+import { Bot, Plug, Plus, Pencil, Trash2, ChevronDown, Loader2, Save, Sparkles, Maximize2, X } from 'lucide-react';
 import { toast } from 'sonner';
+
+type PromptType = 'keyword' | 'body' | 'free';
+
+const PROMPT_TYPES: { key: PromptType; label: string }[] = [
+  { key: 'keyword', label: '키워드기반' },
+  { key: 'body', label: '본문기반' },
+  { key: 'free', label: '자유형' },
+];
 
 type Prompt = {
   id: string;
+  type?: PromptType;
   name: string;
   content: string;
 };
@@ -60,8 +69,9 @@ export default function WritingAIPage() {
   const [models, setModels] = useState<Record<string, string>>({});
   const [defaultProvider, setDefaultProvider] = useState('claude');
   const [prompts, setPrompts] = useState<Prompt[]>([]);
+  const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
   const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
-  const [showPromptForm, setShowPromptForm] = useState(false);
+  const [showExpandedEditor, setShowExpandedEditor] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -110,11 +120,13 @@ export default function WritingAIPage() {
       setPrompts([
         {
           id: '1',
+          type: 'keyword',
           name: '기본 블로그 글',
           content: '{keyword}을(를) 주제로 {tone} 톤의 블로그 글을 {length}자 내외로 작성해줘. 소제목을 포함하고 HTML 형식으로 출력해줘.',
         },
         {
           id: '2',
+          type: 'keyword',
           name: '리뷰 글',
           content: '{keyword}에 대한 상세 리뷰를 작성해줘. 장점, 단점, 총평을 포함하고 {tone} 톤으로 {length}자 내외 HTML 형식으로 출력해줘.',
         },
@@ -186,30 +198,43 @@ export default function WritingAIPage() {
     }
   };
 
-  const handleAddPrompt = () => {
-    setEditingPrompt({ id: '', name: '', content: '' });
-    setShowPromptForm(true);
+  const handleSelectPrompt = (id: string) => {
+    setSelectedPromptId(id);
+    const prompt = prompts.find((p) => p.id === id);
+    if (prompt) setEditingPrompt({ ...prompt });
   };
 
-  const handleEditPrompt = (prompt: Prompt) => {
-    setEditingPrompt({ ...prompt });
-    setShowPromptForm(true);
+  const handleAddPrompt = () => {
+    setSelectedPromptId(null);
+    setEditingPrompt({ id: '', type: 'keyword', name: '', content: '' });
   };
 
   const handleSavePrompt = () => {
-    if (!editingPrompt || !editingPrompt.name.trim() || !editingPrompt.content.trim()) return;
+    if (!editingPrompt || !editingPrompt.name.trim() || !editingPrompt.content.trim()) {
+      toast.error('이름과 내용을 입력해주세요');
+      return;
+    }
     if (editingPrompt.id) {
       setPrompts((prev) => prev.map((p) => (p.id === editingPrompt.id ? editingPrompt : p)));
+      toast.success('프롬프트가 수정되었습니다');
     } else {
-      setPrompts((prev) => [...prev, { ...editingPrompt, id: Date.now().toString() }]);
+      const newPrompt = { ...editingPrompt, id: Date.now().toString() };
+      setPrompts((prev) => [...prev, newPrompt]);
+      setSelectedPromptId(newPrompt.id);
+      toast.success('프롬프트가 추가되었습니다');
     }
-    setEditingPrompt(null);
-    setShowPromptForm(false);
   };
 
-  const handleDeletePrompt = (id: string) => {
+  const handleDeletePrompt = () => {
+    if (!selectedPromptId) {
+      toast.error('삭제할 프롬프트를 선택해주세요');
+      return;
+    }
     if (!confirm('이 프롬프트를 삭제하시겠습니까?')) return;
-    setPrompts((prev) => prev.filter((p) => p.id !== id));
+    setPrompts((prev) => prev.filter((p) => p.id !== selectedPromptId));
+    setSelectedPromptId(null);
+    setEditingPrompt(null);
+    toast.success('프롬프트가 삭제되었습니다');
   };
 
   if (loading) {
@@ -322,59 +347,102 @@ export default function WritingAIPage() {
 
       {/* 프롬프트 관리 */}
       <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold">프롬프트 관리</h2>
-            <p className="text-xs text-muted-foreground">
-              글 생성 시 사용할 프롬프트 템플릿을 관리합니다. 변수: {'{keyword}'}, {'{tone}'}, {'{length}'}
-            </p>
-          </div>
-          <button
-            onClick={handleAddPrompt}
-            className="flex items-center gap-1.5 rounded-lg border border-input px-3 py-2 text-sm hover:bg-muted transition-colors"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            새 프롬프트
-          </button>
+        <div>
+          <h2 className="text-lg font-semibold">프롬프트 관리</h2>
+          <p className="text-xs text-muted-foreground">
+            글 생성 시 사용할 프롬프트 템플릿을 관리합니다. 변수: {'{keyword}'}, {'{tone}'}, {'{length}'}
+          </p>
         </div>
 
-        <div className="space-y-2">
-          {prompts.map((prompt) => (
-            <div key={prompt.id} className="flex items-start justify-between rounded-lg border border-border p-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium">{prompt.name}</p>
-                <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{prompt.content}</p>
-              </div>
-              <div className="ml-3 flex shrink-0 gap-1">
-                <button onClick={() => handleEditPrompt(prompt)} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
-                  <Pencil className="h-3.5 w-3.5" />
-                </button>
-                <button onClick={() => handleDeletePrompt(prompt.id)} className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors">
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-          ))}
-          {prompts.length === 0 && (
-            <p className="py-6 text-center text-sm text-muted-foreground">등록된 프롬프트가 없습니다</p>
-          )}
+        {/* 테이블 목록 */}
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/50">
+                <th className="w-10 px-3 py-2.5 text-center text-xs font-medium text-muted-foreground">#</th>
+                <th className="w-24 px-3 py-2.5 text-left text-xs font-medium text-muted-foreground">타입</th>
+                <th className="w-40 px-3 py-2.5 text-left text-xs font-medium text-muted-foreground">이름</th>
+                <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground">내용</th>
+              </tr>
+            </thead>
+            <tbody>
+              {prompts.map((prompt, idx) => (
+                <tr
+                  key={prompt.id}
+                  onClick={() => handleSelectPrompt(prompt.id)}
+                  className={`cursor-pointer border-b border-border transition-colors ${
+                    selectedPromptId === prompt.id
+                      ? 'bg-primary/10 text-primary'
+                      : 'hover:bg-muted/50'
+                  }`}
+                >
+                  <td className="px-3 py-2.5 text-center text-muted-foreground">{idx + 1}</td>
+                  <td className="px-3 py-2.5">
+                    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                      prompt.type === 'keyword' ? 'bg-blue-500/10 text-blue-500' :
+                      prompt.type === 'body' ? 'bg-green-500/10 text-green-500' :
+                      'bg-orange-500/10 text-orange-500'
+                    }`}>
+                      {PROMPT_TYPES.find((t) => t.key === (prompt.type || 'keyword'))?.label || '키워드기반'}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2.5 font-medium truncate max-w-[160px]">{prompt.name}</td>
+                  <td className="px-3 py-2.5 text-muted-foreground truncate max-w-[300px]">{prompt.content}</td>
+                </tr>
+              ))}
+              {prompts.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="py-8 text-center text-muted-foreground">등록된 프롬프트가 없습니다</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
 
-        {showPromptForm && editingPrompt && (
-          <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
-            <p className="text-sm font-medium">{editingPrompt.id ? '프롬프트 수정' : '새 프롬프트 추가'}</p>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm text-muted-foreground">프롬프트 이름</label>
-              <input
-                type="text"
-                value={editingPrompt.name}
-                onChange={(e) => setEditingPrompt({ ...editingPrompt, name: e.target.value })}
-                placeholder="예: 기본 블로그 글"
-                className="rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              />
+        {/* 편집 폼 */}
+        {editingPrompt && (
+          <div className="rounded-lg border border-border p-4 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* 프롬프트 타입 */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm text-muted-foreground">프롬프트 타입</label>
+                <div className="relative">
+                  <select
+                    value={editingPrompt.type || 'keyword'}
+                    onChange={(e) => setEditingPrompt({ ...editingPrompt, type: e.target.value as PromptType })}
+                    className="w-full appearance-none rounded-lg border border-input bg-background px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    {PROMPT_TYPES.map((t) => (
+                      <option key={t.key} value={t.key}>{t.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                </div>
+              </div>
+              {/* 이름 */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm text-muted-foreground">이름</label>
+                <input
+                  type="text"
+                  value={editingPrompt.name}
+                  onChange={(e) => setEditingPrompt({ ...editingPrompt, name: e.target.value })}
+                  placeholder="예: 기본 블로그 글"
+                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
             </div>
+            {/* 내용 */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm text-muted-foreground">프롬프트 내용</label>
+              <div className="flex items-center justify-between">
+                <label className="text-sm text-muted-foreground">내용</label>
+                <button
+                  onClick={() => setShowExpandedEditor(true)}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Maximize2 className="h-3 w-3" />
+                  확대 편집
+                </button>
+              </div>
               <textarea
                 value={editingPrompt.content}
                 onChange={(e) => setEditingPrompt({ ...editingPrompt, content: e.target.value })}
@@ -383,13 +451,71 @@ export default function WritingAIPage() {
                 className="rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
               />
             </div>
-            <div className="flex gap-2">
-              <button onClick={handleSavePrompt} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors">저장</button>
-              <button onClick={() => { setShowPromptForm(false); setEditingPrompt(null); }} className="rounded-lg border border-input px-3 py-1.5 text-sm hover:bg-muted transition-colors">취소</button>
-            </div>
           </div>
         )}
+
+        {/* 하단 버튼 3개 */}
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            onClick={handleAddPrompt}
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-input px-3 py-2.5 text-sm font-medium hover:bg-muted transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            추가
+          </button>
+          <button
+            onClick={handleSavePrompt}
+            disabled={!editingPrompt}
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-input px-3 py-2.5 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Pencil className="h-4 w-4" />
+            {editingPrompt?.id ? '수정' : '저장'}
+          </button>
+          <button
+            onClick={handleDeletePrompt}
+            disabled={!selectedPromptId}
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-destructive/50 px-3 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Trash2 className="h-4 w-4" />
+            삭제
+          </button>
+        </div>
       </div>
+
+      {/* 확대 편집 모달 */}
+      {showExpandedEditor && editingPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-2xl rounded-xl border border-border bg-card p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">프롬프트 편집</h3>
+              <button
+                onClick={() => setShowExpandedEditor(false)}
+                className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              사용 가능한 변수: <code className="rounded bg-muted px-1">{'{keyword}'}</code> <code className="rounded bg-muted px-1">{'{tone}'}</code> <code className="rounded bg-muted px-1">{'{length}'}</code>
+            </p>
+            <textarea
+              value={editingPrompt.content}
+              onChange={(e) => setEditingPrompt({ ...editingPrompt, content: e.target.value })}
+              rows={12}
+              className="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+              autoFocus
+            />
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowExpandedEditor(false)}
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                완료
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 설정 저장 */}
       <button
