@@ -10,7 +10,7 @@
 
 ### 핵심 기능
 
-- **AI 글 생성**: Claude API 기반 고품질 한국어 콘텐츠 자동 생성 ✅
+- **AI 글 생성**: 멀티 AI 지원 (Claude / OpenAI / Gemini) ✅ UI, Claude 구현 완료
 - **다중 플랫폼 발행**: 네이버 블로그, 티스토리, 워드프레스, 블로그스팟 ✅
 - **브라우저 자동화**: Playwright로 네이버/티스토리 자동 로그인 + 발행 ✅
 - **글 관리**: 초안 CRUD, 발행 이력, 본문 편집/미리보기, 설정 저장 ✅
@@ -462,6 +462,17 @@ Platform Type: NAVER | TISTORY | WORDPRESS | BLOGSPOT
 - [x] 글쓰기 AI 설정 — API Key, 모델, 프롬프트 DB 저장/로드
 - [x] 글쓰기 설정 — 포스트 개수, 글자수, 대기시간, 발행설정 DB 저장/로드
 - [x] 새 글 쓰기에서 DB 프롬프트/글자수 불러오기
+
+### 멀티 AI 제공자 지원 (진행 중)
+> Claude 외 OpenAI, Gemini 지원. 설정 페이지에서 탭으로 제공자 전환.
+
+- [x] AI 설정 페이지 탭 UI (클로드/오픈AI/제미나이)
+- [x] 제공자별 API Key, 모델 선택, 기본 AI 설정 DB 저장
+- [ ] OpenAI 글 생성 모듈 (lib/ai/openai.ts)
+- [ ] Gemini 글 생성 모듈 (lib/ai/gemini.ts)
+- [ ] 글 생성 API provider 분기 (/api/posts/generate)
+- [ ] 연결 테스트 API (/api/ai/test)
+- [ ] 새 글 쓰기에서 AI 제공자 선택
 
 ### Phase C - 예약 발행 + 이미지
 > 예약/반복 발행 스케줄러 + AI 이미지 자동 삽입.
