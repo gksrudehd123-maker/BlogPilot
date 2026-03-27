@@ -1,408 +1,233 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Loader2, Sparkles, Send, ChevronDown, Copy, Check } from 'lucide-react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { Plus, Search, FileText, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
 
-interface Platform {
+type PublishLog = {
   id: string;
-  type: string;
-  name: string;
-  credentials: Record<string, string> | null;
-}
+  status: string;
+  publishedUrl: string | null;
+  publishedAt: string | null;
+  platform: { name: string; type: string };
+};
 
-const defaultPrompts = [
-  {
-    id: '1',
-    name: '기본 블로그 글',
-    content: '{keyword}을(를) 주제로 {tone} 톤의 블로그 글을 {length}자 내외로 작성해줘. 소제목을 포함하고 HTML 형식으로 출력해줘.',
-  },
-  {
-    id: '2',
-    name: '리뷰 글',
-    content: '{keyword}에 대한 상세 리뷰를 작성해줘. 장점, 단점, 총평을 포함하고 {tone} 톤으로 {length}자 내외 HTML 형식으로 출력해줘.',
-  },
-];
+type Post = {
+  id: string;
+  title: string;
+  keyword: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  publishLogs: PublishLog[];
+  _count: { publishLogs: number };
+};
 
-const toneOptions = ['친근한', '전문적인', '유머러스한', '정보전달형', '감성적인'];
+const STATUS_BADGE: Record<string, { label: string; color: string }> = {
+  DRAFT: { label: '초안', color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
+  PUBLISHING: { label: '발행 중', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' },
+  PUBLISHED: { label: '발행 완료', color: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' },
+  FAILED: { label: '발행 실패', color: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' },
+  SCHEDULED: { label: '예약됨', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' },
+};
 
-export default function PostsPage() {
-  const [keyword, setKeyword] = useState('');
-  const [selectedPromptId, setSelectedPromptId] = useState(defaultPrompts[0].id);
-  const [tone, setTone] = useState('친근한');
-  const [length, setLength] = useState(1500);
-  const [generating, setGenerating] = useState(false);
-  const [generatedContent, setGeneratedContent] = useState('');
-  const [title, setTitle] = useState('');
-  const [platforms, setPlatforms] = useState<Platform[]>([]);
-  const [selectedPlatformIds, setSelectedPlatformIds] = useState<string[]>([]);
-  const [publishing, setPublishing] = useState(false);
-  const [copied, setCopied] = useState(false);
+const PLATFORM_COLORS: Record<string, string> = {
+  BLOGSPOT: '#FF6F00',
+  WORDPRESS: '#21759B',
+  NAVER: '#03C75A',
+  TISTORY: '#FF5A4A',
+};
 
-  const fetchPlatforms = useCallback(async () => {
-    try {
-      const res = await fetch('/api/platforms');
-      const data = await res.json();
-      // 크레덴셜이 설정된 플랫폼만 표시
-      const filtered = await Promise.all(
-        data.map(async (p: Platform) => {
-          if (p.type === 'BLOGSPOT') return p.credentials?.accessToken ? p : null;
-          if (p.type === 'WORDPRESS') return p.credentials?.password ? p : null;
-          if (p.type === 'NAVER') {
-            // 세션 존재 여부 빠른 체크
-            try {
-              const sessionRes = await fetch(`/api/auth/session-check?platform=naver&quick=true`);
-              const session = await sessionRes.json();
-              return session.valid ? p : null;
-            } catch { return null; }
-          }
-          if (p.type === 'TISTORY') {
-            try {
-              const sessionRes = await fetch(`/api/auth/session-check?platform=tistory&quick=true`);
-              const session = await sessionRes.json();
-              return session.valid ? p : null;
-            } catch { return null; }
-          }
-          return null;
-        })
-      );
-      setPlatforms(filtered.filter(Boolean) as Platform[]);
-    } catch {
-      // 무시
-    }
-  }, []);
+export default function PostListPage() {
+  const router = useRouter();
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
-  useEffect(() => {
-    fetchPlatforms();
-  }, [fetchPlatforms]);
-
-  const handleGenerate = async () => {
-    if (!keyword.trim()) {
-      toast.error('키워드를 입력하세요');
-      return;
-    }
-
-    const prompt = defaultPrompts.find((p) => p.id === selectedPromptId);
-    if (!prompt) return;
-
-    setGenerating(true);
-    setGeneratedContent('');
-    setTitle('');
-
-    try {
-      const res = await fetch('/api/posts/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          keyword,
-          prompt: prompt.content,
-          tone,
-          length,
-        }),
+  const { data, isLoading, refetch } = useQuery<{
+    data: Post[];
+    meta: { total: number; page: number; totalPages: number };
+  }>({
+    queryKey: ['posts', page, search, statusFilter],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: '20',
+        ...(search && { search }),
+        ...(statusFilter && { status: statusFilter }),
       });
+      const res = await fetch(`/api/posts?${params}`);
+      return res.json();
+    },
+  });
 
-      const data = await res.json();
+  const posts = data?.data ?? [];
+  const meta = data?.meta;
 
-      if (data.success) {
-        setGeneratedContent(data.content);
-        // 제목 자동 추출 (첫 번째 h1 또는 h2 태그에서)
-        const titleMatch = data.content.match(/<h[12][^>]*>(.*?)<\/h[12]>/i);
-        if (titleMatch) {
-          setTitle(titleMatch[1].replace(/<[^>]*>/g, ''));
-        } else {
-          setTitle(keyword);
-        }
-        toast.success('글이 생성되었습니다');
-      } else {
-        toast.error(data.error || '글 생성에 실패했습니다');
-      }
-    } catch {
-      toast.error('글 생성에 실패했습니다');
-    } finally {
-      setGenerating(false);
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm('이 글을 삭제하시겠습니까?')) return;
+
+    const res = await fetch(`/api/posts/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      toast.success('글이 삭제되었습니다');
+      refetch();
+    } else {
+      toast.error('삭제에 실패했습니다');
     }
   };
 
-  const handlePlatformToggle = (id: string) => {
-    setSelectedPlatformIds((prev) =>
-      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id],
-    );
-  };
-
-  const handlePublish = async () => {
-    if (!generatedContent) {
-      toast.error('먼저 글을 생성하세요');
-      return;
-    }
-    if (selectedPlatformIds.length === 0) {
-      toast.error('발행할 플랫폼을 선택하세요');
-      return;
-    }
-
-    setPublishing(true);
-    try {
-      const res = await fetch('/api/publish', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: title || keyword,
-          content: generatedContent,
-          keyword,
-          platformIds: selectedPlatformIds,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        const results = data.results as { platform: string; success: boolean; url?: string; error?: string }[];
-        results.forEach((r) => {
-          if (r.success) {
-            toast.success(`${r.platform}: 발행 성공!`, {
-              description: r.url,
-            });
-          } else {
-            toast.error(`${r.platform}: 발행 실패`, {
-              description: r.error,
-            });
-          }
-        });
-      } else {
-        toast.error(data.error || '발행에 실패했습니다');
-      }
-    } catch {
-      toast.error('발행에 실패했습니다');
-    } finally {
-      setPublishing(false);
-    }
-  };
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(generatedContent);
-    setCopied(true);
-    toast.success('클립보드에 복사되었습니다');
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const platformColors: Record<string, string> = {
-    BLOGSPOT: '#FF6F00',
-    WORDPRESS: '#21759B',
-    NAVER: '#03C75A',
-    TISTORY: '#FF5A4A',
-  };
-
-  const platformLabels: Record<string, string> = {
-    BLOGSPOT: '블로그스팟',
-    WORDPRESS: '워드프레스',
-    NAVER: '네이버',
-    TISTORY: '티스토리',
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">글쓰기</h1>
-        <p className="text-sm text-muted-foreground">
-          AI로 블로그 글을 생성하고 플랫폼에 발행합니다
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">글 목록</h1>
+          <p className="text-sm text-muted-foreground">
+            저장된 글을 관리하고 발행합니다
+          </p>
+        </div>
+        <button
+          onClick={() => router.push('/posts/new')}
+          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          새 글 쓰기
+        </button>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-        {/* 왼쪽: 글 생성 설정 */}
-        <div className="space-y-4">
-          <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-6 space-y-4">
-            <h2 className="text-lg font-semibold">글 생성</h2>
-
-            {/* 키워드 */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">키워드</label>
-              <input
-                type="text"
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-                placeholder="예: 재테크 방법, 맛집 추천"
-                className="rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-
-            {/* 프롬프트 선택 */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">프롬프트</label>
-              <div className="relative">
-                <select
-                  value={selectedPromptId}
-                  onChange={(e) => setSelectedPromptId(e.target.value)}
-                  className="w-full appearance-none rounded-lg border border-input bg-background px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  {defaultPrompts.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              </div>
-            </div>
-
-            {/* 톤 + 글자수 */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">톤</label>
-                <div className="relative">
-                  <select
-                    value={tone}
-                    onChange={(e) => setTone(e.target.value)}
-                    className="w-full appearance-none rounded-lg border border-input bg-background px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    {toneOptions.map((t) => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                </div>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">글자수</label>
-                <input
-                  type="number"
-                  value={length}
-                  onChange={(e) => setLength(Number(e.target.value))}
-                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-            </div>
-
-            {/* 생성 버튼 */}
-            <button
-              onClick={handleGenerate}
-              disabled={generating}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
-            >
-              {generating ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  생성 중...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4" />
-                  AI 글 생성
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* 발행 플랫폼 선택 */}
-          {generatedContent && (
-            <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-6 space-y-4">
-              <h2 className="text-lg font-semibold">발행</h2>
-
-              {/* 제목 */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">제목</label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="글 제목"
-                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-
-              {/* 플랫폼 선택 */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">발행 플랫폼</label>
-                {platforms.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">
-                    연동된 플랫폼이 없습니다. 사이트 설정에서 플랫폼을 연동해주세요.
-                  </p>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {platforms.map((p) => {
-                      const selected = selectedPlatformIds.includes(p.id);
-                      return (
-                        <button
-                          key={p.id}
-                          onClick={() => handlePlatformToggle(p.id)}
-                          className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
-                            selected
-                              ? 'border-primary bg-primary/10 text-primary'
-                              : 'border-border text-muted-foreground hover:bg-muted'
-                          }`}
-                        >
-                          <div
-                            className="h-2.5 w-2.5 rounded-full"
-                            style={{ backgroundColor: platformColors[p.type] }}
-                          />
-                          {p.name}
-                          <span className="text-xs">({platformLabels[p.type]})</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* 발행 버튼 */}
-              <button
-                onClick={handlePublish}
-                disabled={publishing || selectedPlatformIds.length === 0}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-primary bg-primary/5 px-4 py-2.5 text-sm font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {publishing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    발행 중...
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4" />
-                    선택한 플랫폼에 발행
-                  </>
-                )}
-              </button>
-            </div>
-          )}
+      {/* 필터 */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="제목, 키워드 검색..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          />
         </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+          className="rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          <option value="">전체 상태</option>
+          <option value="DRAFT">초안</option>
+          <option value="PUBLISHED">발행 완료</option>
+          <option value="FAILED">발행 실패</option>
+        </select>
+        {meta && (
+          <span className="shrink-0 text-sm text-muted-foreground">
+            총 {meta.total}건
+          </span>
+        )}
+      </div>
 
-        {/* 오른쪽: 미리보기 */}
-        <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">미리보기</h2>
-            {generatedContent && (
+      {/* 글 목록 */}
+      <div className="space-y-3">
+        {isLoading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full rounded-xl" />
+          ))
+        ) : posts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <FileText className="h-12 w-12 text-muted-foreground" />
+            <p className="mt-4 text-sm text-muted-foreground">
+              {search || statusFilter ? '검색 결과가 없습니다' : '아직 작성된 글이 없습니다'}
+            </p>
+            {!search && !statusFilter && (
               <button
-                onClick={handleCopy}
-                className="flex items-center gap-1.5 rounded-lg border border-input px-2.5 py-1.5 text-xs hover:bg-muted transition-colors"
+                onClick={() => router.push('/posts/new')}
+                className="mt-4 flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
               >
-                {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                {copied ? '복사됨' : '복사'}
+                <Plus className="h-4 w-4" />
+                첫 글 작성하기
               </button>
             )}
           </div>
+        ) : (
+          posts.map((post) => {
+            const badge = STATUS_BADGE[post.status] || STATUS_BADGE.DRAFT;
+            const successLogs = post.publishLogs.filter((l) => l.status === 'SUCCESS');
 
-          {generating ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="mt-4 text-sm text-muted-foreground">AI가 글을 작성하고 있습니다...</p>
-            </div>
-          ) : generatedContent ? (
-            <div
-              className="prose prose-sm dark:prose-invert mt-4 max-w-none"
-              dangerouslySetInnerHTML={{ __html: generatedContent }}
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <Sparkles className="h-10 w-10 text-muted-foreground" />
-              <p className="mt-4 text-sm text-muted-foreground">
-                키워드를 입력하고 AI 글 생성 버튼을 클릭하세요
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                생성된 글이 여기에 미리보기로 표시됩니다
-              </p>
-            </div>
-          )}
-        </div>
+            return (
+              <div
+                key={post.id}
+                onClick={() => router.push(`/posts/${post.id}`)}
+                className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm cursor-pointer hover:border-primary/30 hover:shadow-md transition-all sm:p-5"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-medium truncate">{post.title}</h3>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${badge.color}`}>
+                      {badge.label}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                    {post.keyword && (
+                      <span className="rounded bg-muted px-1.5 py-0.5">
+                        {post.keyword}
+                      </span>
+                    )}
+                    <span>{formatDate(post.updatedAt)}</span>
+                    {successLogs.length > 0 && (
+                      <div className="flex items-center gap-1">
+                        {successLogs.map((log) => (
+                          <div
+                            key={log.id}
+                            className="h-2 w-2 rounded-full"
+                            style={{ backgroundColor: PLATFORM_COLORS[log.platform.type] || '#888' }}
+                            title={`${log.platform.name} 발행됨`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={(e) => handleDelete(post.id, e)}
+                  className="shrink-0 rounded-lg p-2 text-muted-foreground hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 transition-colors"
+                  title="삭제"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            );
+          })
+        )}
       </div>
+
+      {/* 페이지네이션 */}
+      {meta && meta.totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="rounded-lg px-3 py-1 text-sm hover:bg-muted disabled:opacity-50"
+          >
+            이전
+          </button>
+          <span className="text-sm text-muted-foreground">
+            {page} / {meta.totalPages}
+          </span>
+          <button
+            onClick={() => setPage((p) => Math.min(meta.totalPages, p + 1))}
+            disabled={page === meta.totalPages}
+            className="rounded-lg px-3 py-1 text-sm hover:bg-muted disabled:opacity-50"
+          >
+            다음
+          </button>
+        </div>
+      )}
     </div>
   );
 }

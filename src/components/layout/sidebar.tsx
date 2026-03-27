@@ -29,16 +29,6 @@ interface NavGroup {
 
 const navGroups: NavGroup[] = [
   {
-    label: '설정',
-    icon: Settings,
-    children: [
-      { href: '/settings/sites', label: '사이트 설정' },
-      { href: '/settings/ai/writing', label: '글쓰기 AI' },
-      { href: '/settings/ai/image', label: '이미지 AI' },
-      { href: '/settings/writing', label: '글쓰기 설정' },
-    ],
-  },
-  {
     label: '키워드',
     icon: Search,
     children: [
@@ -47,10 +37,21 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: '글쓰기',
+    label: '글 관리',
     icon: PenLine,
     children: [
-      { href: '/posts', label: '글쓰기' },
+      { href: '/posts', label: '글 목록' },
+      { href: '/posts/new', label: '새 글 쓰기' },
+    ],
+  },
+  {
+    label: '설정',
+    icon: Settings,
+    children: [
+      { href: '/settings/sites', label: '사이트 설정' },
+      { href: '/settings/ai/writing', label: '글쓰기 AI' },
+      { href: '/settings/ai/image', label: '이미지 AI' },
+      { href: '/settings/writing', label: '글쓰기 설정' },
     ],
   },
 ];
@@ -106,7 +107,9 @@ function TreeNav({
             {!collapsed && isOpen && (
               <div className="ml-4 mt-0.5 space-y-0.5 border-l border-border pl-3">
                 {group.children.map((child) => {
-                  const isActive = pathname.startsWith(child.href);
+                  const isActive = child.href === '/posts'
+                    ? pathname === '/posts'
+                    : pathname.startsWith(child.href);
                   return (
                     <Link
                       key={child.href}

@@ -7,7 +7,7 @@ import { publish } from '@/lib/platforms/publish';
 // 선택한 플랫폼에 글 발행
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { title, content, keyword, platformIds } = body;
+  const { title, content, keyword, platformIds, postId } = body;
 
   if (!title || !content || !platformIds?.length) {
     return NextResponse.json(
@@ -18,16 +18,29 @@ export async function POST(request: NextRequest) {
 
   const user = await getOrCreateDefaultUser();
 
-  // 글을 Post 테이블에 저장
-  const post = await prisma.post.create({
-    data: {
-      title,
-      content,
-      keyword: keyword || null,
-      status: 'PUBLISHING',
-      userId: user.id,
-    },
-  });
+  // 기존 Post가 있으면 업데이트, 없으면 새로 생성
+  let post;
+  if (postId) {
+    post = await prisma.post.update({
+      where: { id: postId },
+      data: {
+        title,
+        content,
+        keyword: keyword || null,
+        status: 'PUBLISHING',
+      },
+    });
+  } else {
+    post = await prisma.post.create({
+      data: {
+        title,
+        content,
+        keyword: keyword || null,
+        status: 'PUBLISHING',
+        userId: user.id,
+      },
+    });
+  }
 
   // 각 플랫폼에 발행
   const results = [];

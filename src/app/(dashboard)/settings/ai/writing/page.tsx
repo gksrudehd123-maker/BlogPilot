@@ -1,32 +1,96 @@
 'use client';
 
-import { useState } from 'react';
-import { Bot, Plug, Plus, Pencil, Trash2, ChevronDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Bot, Plug, Plus, Pencil, Trash2, ChevronDown, Loader2, Save } from 'lucide-react';
+import { toast } from 'sonner';
 
-const defaultPrompts = [
-  {
-    id: '1',
-    name: '기본 블로그 글',
-    content: '{keyword}을(를) 주제로 {tone} 톤의 블로그 글을 {length}자 내외로 작성해줘. 소제목을 포함하고 HTML 형식으로 출력해줘.',
-  },
-  {
-    id: '2',
-    name: '리뷰 글',
-    content: '{keyword}에 대한 상세 리뷰를 작성해줘. 장점, 단점, 총평을 포함하고 {tone} 톤으로 {length}자 내외 HTML 형식으로 출력해줘.',
-  },
+type Prompt = {
+  id: string;
+  name: string;
+  content: string;
+};
+
+const AI_MODELS = [
+  'claude-sonnet-4-20250514',
+  'claude-haiku-4-5-20251001',
+  'claude-opus-4-20250514',
 ];
 
 export default function WritingAIPage() {
-  const [prompts, setPrompts] = useState(defaultPrompts);
-  const [editingPrompt, setEditingPrompt] = useState<{ id: string; name: string; content: string } | null>(null);
+  const [apiKey, setApiKey] = useState('');
+  const [model, setModel] = useState(AI_MODELS[0]);
+  const [prompts, setPrompts] = useState<Prompt[]>([]);
+  const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
   const [showPromptForm, setShowPromptForm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  // 설정 로드
+  useEffect(() => {
+    fetch('/api/settings')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.ai_api_key) setApiKey(data.ai_api_key);
+        if (data.ai_model) setModel(data.ai_model);
+        if (data.ai_prompts) {
+          try {
+            setPrompts(JSON.parse(data.ai_prompts));
+          } catch {
+            // 파싱 실패 시 기본 프롬프트
+          }
+        }
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  // 기본 프롬프트 (DB에 없을 때)
+  useEffect(() => {
+    if (!loading && prompts.length === 0) {
+      setPrompts([
+        {
+          id: '1',
+          name: '기본 블로그 글',
+          content: '{keyword}을(를) 주제로 {tone} 톤의 블로그 글을 {length}자 내외로 작성해줘. 소제목을 포함하고 HTML 형식으로 출력해줘.',
+        },
+        {
+          id: '2',
+          name: '리뷰 글',
+          content: '{keyword}에 대한 상세 리뷰를 작성해줘. 장점, 단점, 총평을 포함하고 {tone} 톤으로 {length}자 내외 HTML 형식으로 출력해줘.',
+        },
+      ]);
+    }
+  }, [loading, prompts.length]);
+
+  const handleSaveSettings = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ai_api_key: apiKey,
+          ai_model: model,
+          ai_prompts: JSON.stringify(prompts),
+        }),
+      });
+      if (res.ok) {
+        toast.success('설정이 저장되었습니다');
+      } else {
+        toast.error('저장에 실패했습니다');
+      }
+    } catch {
+      toast.error('저장에 실패했습니다');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleAddPrompt = () => {
     setEditingPrompt({ id: '', name: '', content: '' });
     setShowPromptForm(true);
   };
 
-  const handleEditPrompt = (prompt: typeof defaultPrompts[0]) => {
+  const handleEditPrompt = (prompt: Prompt) => {
     setEditingPrompt({ ...prompt });
     setShowPromptForm(true);
   };
@@ -53,6 +117,14 @@ export default function WritingAIPage() {
     setPrompts((prev) => prev.filter((p) => p.id !== id));
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -76,12 +148,33 @@ export default function WritingAIPage() {
           </div>
         </div>
 
-        <FormField label="모델 선택" type="select" placeholder="claude-sonnet-4-20250514" />
+        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
+          <label className="w-32 shrink-0 text-sm text-muted-foreground">모델 선택</label>
+          <div className="relative flex-1">
+            <select
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              className="w-full appearance-none rounded-lg border border-input bg-background px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              {AI_MODELS.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          </div>
+        </div>
 
         <fieldset className="rounded-lg border border-border p-4">
           <legend className="px-2 text-sm font-medium">API 설정</legend>
-          <div className="space-y-4">
-            <FormField label="API Key" placeholder="sk-ant-..." type="password" />
+          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
+            <label className="w-32 shrink-0 text-sm text-muted-foreground">API Key</label>
+            <input
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="sk-ant-..."
+              className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            />
           </div>
         </fieldset>
 
@@ -90,7 +183,12 @@ export default function WritingAIPage() {
             <Plug className="h-4 w-4" />
             연결 테스트
           </button>
-          <button className="flex items-center gap-2 rounded-lg border-2 border-primary bg-primary/5 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10 transition-colors">
+          <button
+            onClick={handleSaveSettings}
+            disabled={saving}
+            className="flex items-center gap-2 rounded-lg border-2 border-primary bg-primary/5 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             설정저장
           </button>
         </div>
@@ -200,39 +298,12 @@ export default function WritingAIPage() {
             </div>
           </div>
         )}
-      </div>
-    </div>
-  );
-}
 
-function FormField({
-  label,
-  placeholder,
-  type = 'text',
-}: {
-  label: string;
-  placeholder: string;
-  type?: 'text' | 'password' | 'select';
-}) {
-  return (
-    <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
-      <label className="w-32 shrink-0 text-sm text-muted-foreground">
-        {label}
-      </label>
-      {type === 'select' ? (
-        <div className="relative flex-1">
-          <select className="w-full appearance-none rounded-lg border border-input bg-background px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-            <option>{placeholder}</option>
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        </div>
-      ) : (
-        <input
-          type={type}
-          placeholder={placeholder}
-          className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-      )}
+        {/* 프롬프트 변경 후 설정저장 안내 */}
+        <p className="text-xs text-muted-foreground">
+          프롬프트를 추가/수정/삭제한 후 상단의 <strong>설정저장</strong> 버튼을 눌러야 반영됩니다.
+        </p>
+      </div>
     </div>
   );
 }
