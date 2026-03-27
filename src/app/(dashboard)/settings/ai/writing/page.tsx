@@ -48,7 +48,7 @@ const PROVIDERS: ProviderConfig[] = [
     description: 'Google Gemini 모델로 빠르고 효율적인 콘텐츠를 생성합니다',
     icon: '💎',
     iconBg: 'bg-[#4285F4]',
-    models: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'],
+    models: ['gemini-2.5-flash', 'gemini-2.5-pro'],
     apiKeyPlaceholder: 'AIza...',
     settingKeys: { apiKey: 'ai_api_key_gemini', model: 'ai_model_gemini' },
   },

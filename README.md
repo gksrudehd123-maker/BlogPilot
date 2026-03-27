@@ -10,7 +10,7 @@
 
 ### 핵심 기능
 
-- **AI 글 생성**: 멀티 AI 지원 (Claude / OpenAI / Gemini) ✅ UI, Claude 구현 완료
+- **AI 글 생성**: 멀티 AI 지원 (Claude / OpenAI / Gemini) ✅ 3개 제공자 연동 완료
 - **다중 플랫폼 발행**: 네이버 블로그, 티스토리, 워드프레스, 블로그스팟 ✅
 - **브라우저 자동화**: Playwright로 네이버/티스토리 자동 로그인 + 발행 ✅
 - **글 관리**: 초안 CRUD, 발행 이력, 본문 편집/미리보기, 설정 저장 ✅
@@ -48,7 +48,7 @@
 | **Styling** | Tailwind CSS 3 + shadcn/ui | 유틸리티 CSS + Radix UI 기반 컴포넌트 |
 | **Database** | PostgreSQL (Supabase) | 매니지드 PostgreSQL |
 | **ORM** | Prisma 5 | Type-safe 데이터베이스 ORM |
-| **AI 글 생성** | Claude API (Anthropic) | 한국어 콘텐츠 생성 |
+| **AI 글 생성** | Claude / OpenAI / Gemini | 멀티 AI 한국어 콘텐츠 생성 |
 | **브라우저 자동화** | Playwright | 네이버/티스토리 자동 발행 (로컬 전용) |
 | **Server State** | TanStack Query 5 | API 데이터 캐싱, 자동 갱신 |
 | **Toast** | sonner | 알림 토스트 UI |
@@ -86,8 +86,10 @@ pnpm dev
 DATABASE_URL=postgresql://...
 DIRECT_URL=postgresql://...
 
-# AI - 글 생성
-ANTHROPIC_API_KEY=...              # Claude API
+# AI - 글 생성 (설정 페이지에서 DB에 저장하는 것을 권장)
+ANTHROPIC_API_KEY=...              # Claude API (선택)
+OPENAI_API_KEY=...                 # OpenAI API (선택)
+GEMINI_API_KEY=...                 # Gemini API (선택)
 
 # 블로그스팟 (Google OAuth)
 GOOGLE_CLIENT_ID=...
@@ -117,7 +119,9 @@ GOOGLE_CLIENT_SECRET=...
 │  │                  서비스 레이어                      │   │
 │  │  ┌──────────┐ ┌──────────┐ ┌───────────────────┐  │   │
 │  │  │ AI 엔진  │ │ 스케줄러  │ │  키워드 리서치    │  │   │
-│  │  │ (Claude) │ │ (Cron)   │ │  (네이버 검색)    │  │   │
+│  │  │Claude/   │ │ (Cron)   │ │  (네이버 검색)    │  │   │
+│  │  │OpenAI/   │ │          │ │                   │  │   │
+│  │  │Gemini    │ │          │ │                   │  │   │
 │  │  └──────────┘ └──────────┘ └───────────────────┘  │   │
 │  └───────────────────────────────────────────────────┘   │
 │                          ↕                                │
@@ -138,7 +142,7 @@ GOOGLE_CLIENT_SECRET=...
 
 ```
 1. AI 글 생성
-   └→ 키워드 + 프롬프트 + 톤/글자수 → Claude API → HTML 글 생성 → 미리보기/편집
+   └→ 키워드 + 프롬프트 + 톤/글자수 + AI 선택 → Claude/OpenAI/Gemini → HTML 글 생성 → 미리보기/편집
 
 2. 발행
    └→ 플랫폼 선택 → 즉시 발행 → 결과(성공 URL / 실패 메시지) 표시
@@ -178,7 +182,8 @@ BlogPilot/
 │   │       │   ├── callback/google # OAuth 콜백
 │   │       │   ├── browser-login/  # Playwright 수동 로그인
 │   │       │   └── session-check/  # 세션 유효성 체크
-│   │       ├── posts/generate/     # AI 글 생성 (Claude API)
+│   │       ├── ai/test/            # AI 연결 테스트 (Claude/OpenAI/Gemini)
+│   │       ├── posts/generate/     # AI 글 생성 (멀티 AI 제공자 분기)
 │   │       ├── publish/            # 4개 플랫폼 발행
 │   │       └── platforms/          # 플랫폼 계정 CRUD + 연결테스트
 │   ├── components/
@@ -190,7 +195,10 @@ BlogPilot/
 │       ├── auth-temp.ts            # 임시 인증 헬퍼 (Phase E에서 NextAuth로 교체)
 │       ├── google-oauth.ts         # 블로그스팟 Google OAuth
 │       ├── ai/
-│       │   └── claude.ts           # Claude API 클라이언트
+│       │   ├── index.ts            # AI 제공자 분기 (공통 인터페이스)
+│       │   ├── claude.ts           # Claude API 클라이언트
+│       │   ├── openai.ts           # OpenAI API 클라이언트
+│       │   └── gemini.ts           # Gemini API 클라이언트
 │       ├── platforms/              # 플랫폼 발행/테스트
 │       │   ├── publish.ts          # 공통 발행 함수 (4개 플랫폼 분기)
 │       │   ├── test-connection.ts  # 공통 연결 테스트 함수
@@ -463,16 +471,17 @@ Platform Type: NAVER | TISTORY | WORDPRESS | BLOGSPOT
 - [x] 글쓰기 설정 — 포스트 개수, 글자수, 대기시간, 발행설정 DB 저장/로드
 - [x] 새 글 쓰기에서 DB 프롬프트/글자수 불러오기
 
-### 멀티 AI 제공자 지원 (진행 중)
-> Claude 외 OpenAI, Gemini 지원. 설정 페이지에서 탭으로 제공자 전환.
+### 멀티 AI 제공자 지원 (완료)
+> Claude / OpenAI / Gemini 3개 AI 제공자 지원. 설정 페이지에서 탭으로 전환, 글 생성 시 선택 가능.
 
 - [x] AI 설정 페이지 탭 UI (클로드/오픈AI/제미나이)
 - [x] 제공자별 API Key, 모델 선택, 기본 AI 설정 DB 저장
-- [ ] OpenAI 글 생성 모듈 (lib/ai/openai.ts)
-- [ ] Gemini 글 생성 모듈 (lib/ai/gemini.ts)
-- [ ] 글 생성 API provider 분기 (/api/posts/generate)
-- [ ] 연결 테스트 API (/api/ai/test)
-- [ ] 새 글 쓰기에서 AI 제공자 선택
+- [x] OpenAI 글 생성 모듈 (lib/ai/openai.ts)
+- [x] Gemini 글 생성 모듈 (lib/ai/gemini.ts)
+- [x] 공통 AI 분기 모듈 (lib/ai/index.ts)
+- [x] 글 생성 API provider 분기 (/api/posts/generate)
+- [x] 연결 테스트 API (/api/ai/test)
+- [x] 새 글 쓰기에서 AI 제공자 선택 드롭다운
 
 ### Phase C - 예약 발행 + 이미지
 > 예약/반복 발행 스케줄러 + AI 이미지 자동 삽입.
@@ -560,15 +569,15 @@ Platform Type: NAVER | TISTORY | WORDPRESS | BLOGSPOT
 | **Pro** | 월 9,900원 | 플랫폼 4개, 무제한 발행, AI 무제한, 키워드 분석 |
 | **Team** | 월 29,900원 | Pro + 팀원 5명 + 예약 발행 + 우선 지원 |
 
-### AI 글 생성 비용 (Claude API)
+### AI 글 생성 비용
 
-| 글 길이 | 비용 |
-|---------|------|
-| 1,000자 | ~$0.01 (약 15원) |
-| 2,000자 | ~$0.02 (약 30원) |
-| 3,000자 | ~$0.03 (약 45원) |
+| AI 제공자 | 1,000자 기준 | 비고 |
+|-----------|-------------|------|
+| **Claude** (Sonnet) | ~$0.01 (약 15원) | 한국어 품질 우수 |
+| **OpenAI** (GPT-4o) | ~$0.01 (약 15원) | 다양한 스타일 |
+| **Gemini** (2.5 Flash) | ~$0.005 (약 7원) | 가장 저렴 |
 
-> 글 100개 생성해도 $2~3 수준. Pro 플랜 구독료로 충분히 커버 가능.
+> 글 100개 생성해도 $1~3 수준. Pro 플랜 구독료로 충분히 커버 가능.
 
 ---
 

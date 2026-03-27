@@ -2,8 +2,20 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Sparkles, Send, ChevronDown, Copy, Check, Save, List, PenLine } from 'lucide-react';
+import { Loader2, Sparkles, Send, ChevronDown, Copy, Check, Save, List, PenLine, Bot } from 'lucide-react';
 import { toast } from 'sonner';
+
+type AIProviderOption = {
+  key: string;
+  label: string;
+  icon: string;
+};
+
+const AI_PROVIDERS: AIProviderOption[] = [
+  { key: 'claude', label: '클로드', icon: '🟤' },
+  { key: 'openai', label: '오픈AI', icon: '🤖' },
+  { key: 'gemini', label: '제미나이', icon: '💎' },
+];
 
 interface Platform {
   id: string;
@@ -40,6 +52,7 @@ export default function NewPostPage() {
   const [selectedPromptId, setSelectedPromptId] = useState(fallbackPrompts[0].id);
   const [tone, setTone] = useState('친근한');
   const [length, setLength] = useState(1500);
+  const [provider, setProvider] = useState('claude');
   const [generating, setGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState('');
   const [title, setTitle] = useState('');
@@ -97,6 +110,9 @@ export default function NewPostPage() {
             }
           } catch { /* ignore */ }
         }
+        if (data.ai_default_provider) {
+          setProvider(data.ai_default_provider);
+        }
         if (data.writing_char_length) {
           setLength(parseInt(data.writing_char_length));
         }
@@ -130,6 +146,7 @@ export default function NewPostPage() {
           prompt: prompt.content,
           tone,
           length,
+          provider,
         }),
       });
 
@@ -291,6 +308,25 @@ export default function NewPostPage() {
               </div>
             </div>
 
+            {/* AI 제공자 선택 */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">AI 모델</label>
+              <div className="relative">
+                <select
+                  value={provider}
+                  onChange={(e) => setProvider(e.target.value)}
+                  className="w-full appearance-none rounded-lg border border-input bg-background px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  {AI_PROVIDERS.map((p) => (
+                    <option key={p.key} value={p.key}>
+                      {p.icon} {p.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              </div>
+            </div>
+
             {/* 톤 + 글자수 */}
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
@@ -333,7 +369,7 @@ export default function NewPostPage() {
               ) : (
                 <>
                   <Sparkles className="h-4 w-4" />
-                  AI 글 생성
+                  {AI_PROVIDERS.find((p) => p.key === provider)?.icon} 글 생성
                 </>
               )}
             </button>
