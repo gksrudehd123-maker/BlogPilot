@@ -164,8 +164,10 @@ export default function NewPostPage() {
         }
         // API Key가 저장된 이미지 소스 감지
         const sources: { key: string; label: string }[] = [];
-        if (data.image_pixabay_api_key) sources.push({ key: 'pixabay', label: 'Pixabay' });
-        if (data.image_unsplash_api_key) sources.push({ key: 'unsplash', label: 'Unsplash' });
+        if (data.image_pixabay_api_key) sources.push({ key: 'pixabay', label: 'Pixabay (검색)' });
+        if (data.image_unsplash_api_key) sources.push({ key: 'unsplash', label: 'Unsplash (검색)' });
+        if (data.ai_api_key_openai) sources.push({ key: 'dalle', label: 'DALL-E (AI 생성)' });
+        if (data.ai_api_key_gemini) sources.push({ key: 'gemini_imagen', label: 'Gemini Imagen (AI 생성)' });
         setAvailableImageSources(sources);
         if (sources.length > 0) {
           setImageSource(sources[0].key);

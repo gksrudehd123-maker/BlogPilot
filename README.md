@@ -204,7 +204,9 @@ BlogPilot/
 │       ├── image/
 │       │   ├── index.ts            # 이미지 소스 분기 (공통 인터페이스)
 │       │   ├── pixabay.ts          # Pixabay 이미지 검색
-│       │   └── unsplash.ts         # Unsplash 이미지 검색
+│       │   ├── unsplash.ts         # Unsplash 이미지 검색
+│       │   ├── dalle.ts            # DALL-E 이미지 생성
+│       │   └── gemini.ts           # Gemini Imagen 이미지 생성
 │       ├── platforms/              # 플랫폼 발행/테스트
 │       │   ├── publish.ts          # 공통 발행 함수 (4개 플랫폼 분기)
 │       │   ├── test-connection.ts  # 공통 연결 테스트 함수
@@ -495,6 +497,8 @@ Platform Type: NAVER | TISTORY | WORDPRESS | BLOGSPOT
 - [x] 글 생성 시 이미지 자동 삽입 (키워드 검색 → 소제목 사이에 균등 배치)
 - [x] 글쓰기 페이지에서 이미지 소스 직접 선택 (설정 페이지는 API Key 관리 전용)
 - [x] Pixabay 연결 테스트 per_page 최소값 수정 (400 에러 해결)
+- [x] DALL-E 이미지 생성 모듈 (OpenAI API Key 자동 재활용)
+- [x] Gemini Imagen 이미지 생성 모듈 (Gemini API Key 자동 재활용)
 
 ### Phase C - 예약 발행 + 이미지
 > 예약/반복 발행 스케줄러 + AI 이미지 자동 삽입.
@@ -520,8 +524,9 @@ Platform Type: NAVER | TISTORY | WORDPRESS | BLOGSPOT
 - [x] 이미지 AI 설정 페이지 (8개 소스: Pixabay/Unsplash/DuckDuckGo/Google/DALL-E/Gemini/Ideogram/로컬)
 - [x] Pixabay/Unsplash 이미지 검색 모듈 + 연결 테스트 API
 - [x] 글 생성 시 키워드 검색 → 본문 소제목 사이에 이미지 자동 삽입
+- [x] DALL-E AI 이미지 생성 모듈 (OpenAI 키 재활용)
+- [x] Gemini Imagen AI 이미지 생성 모듈 (Gemini 키 재활용)
 - [ ] DuckDuckGo/Google 이미지 검색 모듈
-- [ ] DALL-E/Gemini AI 이미지 생성 모듈
 - [ ] Ideogram AI 이미지 생성 모듈
 - [ ] 썸네일 자동 생성
 
