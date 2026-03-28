@@ -183,6 +183,8 @@ BlogPilot/
 │   │       │   ├── browser-login/  # Playwright 수동 로그인
 │   │       │   └── session-check/  # 세션 유효성 체크
 │   │       ├── ai/test/            # AI 연결 테스트 (Claude/OpenAI/Gemini)
+│   │       ├── images/search/     # 이미지 키워드 검색 (Pixabay/Unsplash)
+│   │       ├── images/test/       # 이미지 소스 연결 테스트
 │   │       ├── posts/generate/     # AI 글 생성 (멀티 AI 제공자 분기)
 │   │       ├── publish/            # 4개 플랫폼 발행
 │   │       └── platforms/          # 플랫폼 계정 CRUD + 연결테스트
@@ -199,6 +201,10 @@ BlogPilot/
 │       │   ├── claude.ts           # Claude API 클라이언트
 │       │   ├── openai.ts           # OpenAI API 클라이언트
 │       │   └── gemini.ts           # Gemini API 클라이언트
+│       ├── image/
+│       │   ├── index.ts            # 이미지 소스 분기 (공통 인터페이스)
+│       │   ├── pixabay.ts          # Pixabay 이미지 검색
+│       │   └── unsplash.ts         # Unsplash 이미지 검색
 │       ├── platforms/              # 플랫폼 발행/테스트
 │       │   ├── publish.ts          # 공통 발행 함수 (4개 플랫폼 분기)
 │       │   ├── test-connection.ts  # 공통 연결 테스트 함수
@@ -484,6 +490,9 @@ Platform Type: NAVER | TISTORY | WORDPRESS | BLOGSPOT
 - [x] 새 글 쓰기에서 AI 제공자 선택 드롭다운
 - [x] 프롬프트 관리 UI 개선 (테이블 목록, 타입 분류, 행 선택→편집, 확대 편집 모달)
 - [x] 시스템 프롬프트 필드 추가 (AI 역할 설정 — Claude system / OpenAI system role / Gemini systemInstruction)
+- [x] 이미지 AI 설정 페이지 리뉴얼 (8개 소스, 아코디언 UI, 카테고리 분류, 연결 테스트)
+- [x] Pixabay/Unsplash 이미지 검색 모듈 + API 엔드포인트
+- [x] 글 생성 시 이미지 자동 삽입 (키워드 검색 → 소제목 사이에 균등 배치)
 
 ### Phase C - 예약 발행 + 이미지
 > 예약/반복 발행 스케줄러 + AI 이미지 자동 삽입.
@@ -505,11 +514,13 @@ Platform Type: NAVER | TISTORY | WORDPRESS | BLOGSPOT
 - [ ] 실패 로그에서 재시도 버튼
 - [ ] 자동 재시도 정책 (선택)
 
-#### C-5. AI 이미지 삽입
-- [ ] Claude 글 생성 시 이미지 위치 마킹 ([IMAGE: 설명])
-- [ ] DALL-E API 연동 (마킹 기반 이미지 생성)
-- [ ] Unsplash API 연동 (스톡 이미지 검색)
-- [ ] 생성된 이미지를 글 본문에 자동 삽입
+#### C-5. AI 이미지 삽입 (일부 완료)
+- [x] 이미지 AI 설정 페이지 (8개 소스: Pixabay/Unsplash/DuckDuckGo/Google/DALL-E/Gemini/Ideogram/로컬)
+- [x] Pixabay/Unsplash 이미지 검색 모듈 + 연결 테스트 API
+- [x] 글 생성 시 키워드 검색 → 본문 소제목 사이에 이미지 자동 삽입
+- [ ] DuckDuckGo/Google 이미지 검색 모듈
+- [ ] DALL-E/Gemini AI 이미지 생성 모듈
+- [ ] Ideogram AI 이미지 생성 모듈
 - [ ] 썸네일 자동 생성
 
 #### C-6. 프롬프트 고도화

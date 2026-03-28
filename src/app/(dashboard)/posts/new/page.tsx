@@ -46,6 +46,51 @@ const fallbackPrompts: Prompt[] = [
 
 const toneOptions = ['친근한', '전문적인', '유머러스한', '정보전달형', '감성적인'];
 
+/**
+ * HTML 본문의 소제목(h2/h3) 사이에 이미지를 균등 삽입
+ */
+function insertImagesIntoContent(
+  html: string,
+  images: { url: string; source: string; pageUrl: string }[],
+): string {
+  // 소제목 태그 위치 찾기
+  const headingRegex = /<h[23][^>]*>/gi;
+  const headingPositions: number[] = [];
+  let match;
+  while ((match = headingRegex.exec(html)) !== null) {
+    headingPositions.push(match.index);
+  }
+
+  if (headingPositions.length < 2 || images.length === 0) {
+    // 소제목이 부족하면 글 끝에 이미지 추가
+    const imgTags = images
+      .map((img) => `<figure style="text-align:center;margin:20px 0"><img src="${img.url}" alt="" style="max-width:100%;border-radius:8px" /><figcaption style="font-size:12px;color:#888;margin-top:4px">출처: ${img.source}</figcaption></figure>`)
+      .join('\n');
+    return html + '\n' + imgTags;
+  }
+
+  // 소제목 사이에 균등 배분 (첫 소제목 제외)
+  const insertPositions = headingPositions.slice(1);
+  const step = Math.max(1, Math.floor(insertPositions.length / images.length));
+
+  const inserts: { position: number; imgTag: string }[] = [];
+  for (let i = 0; i < images.length && i * step < insertPositions.length; i++) {
+    const img = images[i];
+    const pos = insertPositions[i * step];
+    const imgTag = `<figure style="text-align:center;margin:20px 0"><img src="${img.url}" alt="" style="max-width:100%;border-radius:8px" /><figcaption style="font-size:12px;color:#888;margin-top:4px">출처: ${img.source}</figcaption></figure>\n`;
+    inserts.push({ position: pos, imgTag });
+  }
+
+  // 뒤에서부터 삽입 (위치 밀림 방지)
+  let result = html;
+  for (let i = inserts.length - 1; i >= 0; i--) {
+    const { position, imgTag } = inserts[i];
+    result = result.slice(0, position) + imgTag + result.slice(position);
+  }
+
+  return result;
+}
+
 export default function NewPostPage() {
   const router = useRouter();
   const [prompts, setPrompts] = useState<Prompt[]>(fallbackPrompts);
@@ -54,6 +99,7 @@ export default function NewPostPage() {
   const [tone, setTone] = useState('친근한');
   const [length, setLength] = useState(1500);
   const [provider, setProvider] = useState('claude');
+  const [insertImages, setInsertImages] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState('');
   const [title, setTitle] = useState('');
@@ -114,6 +160,13 @@ export default function NewPostPage() {
         if (data.ai_default_provider) {
           setProvider(data.ai_default_provider);
         }
+        // 이미지 소스가 하나라도 활성화되어 있으면 이미지 삽입 기본 ON
+        const hasImageSource = ['pixabay', 'unsplash'].some(
+          (s) => data[`image_${s}_enabled`] === 'true'
+        );
+        if (hasImageSource) {
+          setInsertImages(true);
+        }
         if (data.writing_char_length) {
           setLength(parseInt(data.writing_char_length));
         }
@@ -155,9 +208,29 @@ export default function NewPostPage() {
       const data = await res.json();
 
       if (data.success) {
-        setGeneratedContent(data.content);
+        let finalContent = data.content;
+
+        // 이미지 자동 삽입
+        if (insertImages) {
+          try {
+            const imgRes = await fetch('/api/images/search', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ keyword }),
+            });
+            const imgData = await imgRes.json();
+            if (imgData.success && imgData.images?.length > 0) {
+              finalContent = insertImagesIntoContent(finalContent, imgData.images);
+              toast.success(`이미지 ${imgData.images.length}장이 삽입되었습니다`);
+            }
+          } catch {
+            // 이미지 삽입 실패해도 글 생성은 계속
+          }
+        }
+
+        setGeneratedContent(finalContent);
         // 제목 자동 추출 (첫 번째 h1 또는 h2 태그에서)
-        const titleMatch = data.content.match(/<h[12][^>]*>(.*?)<\/h[12]>/i);
+        const titleMatch = finalContent.match(/<h[12][^>]*>(.*?)<\/h[12]>/i);
         const autoTitle = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, '') : keyword;
         setTitle(autoTitle);
 
@@ -166,7 +239,7 @@ export default function NewPostPage() {
           const saveRes = await fetch('/api/posts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: autoTitle, content: data.content, keyword }),
+            body: JSON.stringify({ title: autoTitle, content: finalContent, keyword }),
           });
           const saved = await saveRes.json();
           if (saved.id) {
@@ -356,6 +429,18 @@ export default function NewPostPage() {
                 />
               </div>
             </div>
+
+            {/* 이미지 자동 삽입 */}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={insertImages}
+                onChange={(e) => setInsertImages(e.target.checked)}
+                className="h-4 w-4 rounded border-input accent-primary"
+              />
+              <span className="text-sm">이미지 자동 삽입</span>
+              <span className="text-xs text-muted-foreground">(이미지 AI 설정에서 소스 활성화 필요)</span>
+            </label>
 
             {/* 생성 버튼 */}
             <button
