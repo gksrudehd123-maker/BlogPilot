@@ -213,7 +213,11 @@ export default function NewPostPage() {
       const data = await res.json();
 
       if (data.success) {
-        let finalContent = data.content;
+        // 마크다운 코드블록 래핑 제거 (OpenAI가 ```html ... ``` 로 감싸는 경우)
+        let finalContent = data.content
+          .replace(/^```html\s*\n?/i, '')
+          .replace(/\n?```\s*$/i, '')
+          .trim();
 
         // 이미지 자동 삽입
         if (insertImages) {
@@ -227,6 +231,10 @@ export default function NewPostPage() {
             if (imgData.success && imgData.images?.length > 0) {
               finalContent = insertImagesIntoContent(finalContent, imgData.images);
               toast.success(`이미지 ${imgData.images.length}장이 삽입되었습니다`);
+            } else if (imgData.success && imgData.images?.length === 0) {
+              toast.warning('해당 키워드로 이미지를 찾지 못했습니다. 다른 키워드나 소스를 시도해보세요.');
+            } else if (imgData.error) {
+              toast.error(`이미지 검색 실패: ${imgData.error}`);
             }
           } catch {
             // 이미지 삽입 실패해도 글 생성은 계속

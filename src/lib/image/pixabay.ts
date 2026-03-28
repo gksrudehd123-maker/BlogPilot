@@ -31,7 +31,7 @@ export async function searchImages({
     key: apiKey,
     q: keyword,
     image_type: 'photo',
-    per_page: String(Math.min(count, 20)),
+    per_page: String(Math.max(3, Math.min(count, 20))),
     lang: 'ko',
     safesearch: 'true',
   });
