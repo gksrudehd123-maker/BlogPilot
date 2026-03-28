@@ -11,6 +11,8 @@ type ImageSource = {
   icon: React.ReactNode;
   iconBg: string;
   free: boolean;
+  implemented: boolean;
+  reuseKey?: string; // AI 설정 키 재활용 (예: 'ai_api_key_openai')
   fields: FieldConfig[];
 };
 
@@ -30,6 +32,7 @@ const IMAGE_SOURCES: ImageSource[] = [
     icon: <ImageIcon className="h-5 w-5 text-white" />,
     iconBg: 'bg-[#4DB6AC]',
     free: true,
+    implemented: true,
     fields: [
       { key: 'api_key', label: 'API Key', type: 'password', placeholder: 'Pixabay API Key' },
       { key: 'count', label: '이미지 수 (최대 20개)', type: 'number', placeholder: '8' },
@@ -42,6 +45,7 @@ const IMAGE_SOURCES: ImageSource[] = [
     icon: <Camera className="h-5 w-5 text-white" />,
     iconBg: 'bg-[#111111]',
     free: true,
+    implemented: true,
     fields: [
       { key: 'api_key', label: 'Access Key', type: 'password', placeholder: 'Unsplash Access Key' },
       { key: 'count', label: '이미지 수 (최대 20개)', type: 'number', placeholder: '8' },
@@ -54,6 +58,7 @@ const IMAGE_SOURCES: ImageSource[] = [
     icon: <Search className="h-5 w-5 text-white" />,
     iconBg: 'bg-[#DE5833]',
     free: true,
+    implemented: false,
     fields: [
       { key: 'count', label: '이미지 수 (최대 20개)', type: 'number', placeholder: '8' },
     ],
@@ -65,6 +70,7 @@ const IMAGE_SOURCES: ImageSource[] = [
     icon: <Search className="h-5 w-5 text-white" />,
     iconBg: 'bg-[#4285F4]',
     free: true,
+    implemented: false,
     fields: [
       { key: 'count', label: '이미지 수 (최대 20개)', type: 'number', placeholder: '8' },
     ],
@@ -76,6 +82,8 @@ const IMAGE_SOURCES: ImageSource[] = [
     icon: <Sparkles className="h-5 w-5 text-white" />,
     iconBg: 'bg-[#10A37F]',
     free: false,
+    implemented: true,
+    reuseKey: 'ai_api_key_openai',
     fields: [
       { key: 'model', label: '모델', type: 'select', placeholder: 'dall-e-3', options: ['dall-e-3', 'dall-e-2'] },
       { key: 'size', label: '이미지 크기', type: 'select', placeholder: '1024x1024', options: ['1024x1024', '1024x1792', '1792x1024'] },
@@ -89,6 +97,8 @@ const IMAGE_SOURCES: ImageSource[] = [
     icon: <Sparkles className="h-5 w-5 text-white" />,
     iconBg: 'bg-[#8E24AA]',
     free: false,
+    implemented: true,
+    reuseKey: 'ai_api_key_gemini',
     fields: [
       { key: 'count', label: '이미지 수 (최대 5개)', type: 'number', placeholder: '2' },
     ],
@@ -100,6 +110,7 @@ const IMAGE_SOURCES: ImageSource[] = [
     icon: <Sparkles className="h-5 w-5 text-white" />,
     iconBg: 'bg-[#FF6B35]',
     free: false,
+    implemented: false,
     fields: [
       { key: 'api_key', label: 'API Key', type: 'password', placeholder: 'Ideogram API Key' },
       { key: 'count', label: '이미지 수 (최대 5개)', type: 'number', placeholder: '2' },
@@ -112,18 +123,36 @@ const IMAGE_SOURCES: ImageSource[] = [
     icon: <FolderOpen className="h-5 w-5 text-white" />,
     iconBg: 'bg-[#78909C]',
     free: true,
+    implemented: false,
     fields: [
       { key: 'folder_path', label: '폴더 경로', type: 'text', placeholder: 'C:\\images\\blog' },
     ],
   },
 ];
 
+type SourceStatus = 'connected' | 'no_key' | 'not_ready';
+
 export default function ImageAIPage() {
   const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
   const [settings, setSettings] = useState<Record<string, Record<string, string>>>({});
+  const [aiKeys, setAiKeys] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState<string | null>(null);
+
+  /** 소스의 연동 상태를 판별 */
+  const getSourceStatus = (source: ImageSource): SourceStatus => {
+    if (!source.implemented) return 'not_ready';
+    // API Key 재활용 (DALL-E, Gemini)
+    if (source.reuseKey && aiKeys[source.reuseKey]) return 'connected';
+    // 자체 API Key 필드가 있는 소스
+    const hasApiKeyField = source.fields.some((f) => f.key === 'api_key');
+    if (hasApiKeyField) {
+      return settings[source.key]?.api_key ? 'connected' : 'no_key';
+    }
+    // API Key 불필요한 구현 완료 소스
+    return 'connected';
+  };
 
   // 설정 로드
   useEffect(() => {
@@ -143,6 +172,12 @@ export default function ImageAIPage() {
         }
 
         setSettings(parsed);
+
+        // AI 설정 키 (DALL-E/Gemini 재활용 판별용)
+        const keys: Record<string, string> = {};
+        if (data.ai_api_key_openai) keys.ai_api_key_openai = data.ai_api_key_openai;
+        if (data.ai_api_key_gemini) keys.ai_api_key_gemini = data.ai_api_key_gemini;
+        setAiKeys(keys);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -255,6 +290,7 @@ export default function ImageAIPage() {
         onSave={handleSave}
         onTest={handleTest}
         hasApiKeyField={hasApiKeyField}
+        getSourceStatus={getSourceStatus}
       />
 
       {/* 무료 — API Key 필요 */}
@@ -270,6 +306,7 @@ export default function ImageAIPage() {
         onSave={handleSave}
         onTest={handleTest}
         hasApiKeyField={hasApiKeyField}
+        getSourceStatus={getSourceStatus}
       />
 
       {/* 무료 — API Key 불필요 */}
@@ -285,6 +322,7 @@ export default function ImageAIPage() {
         onSave={handleSave}
         onTest={handleTest}
         hasApiKeyField={hasApiKeyField}
+        getSourceStatus={getSourceStatus}
       />
     </div>
   );
@@ -303,6 +341,7 @@ function SourceSection({
   onSave,
   onTest,
   hasApiKeyField,
+  getSourceStatus,
 }: {
   title: string;
   sources: ImageSource[];
@@ -315,6 +354,7 @@ function SourceSection({
   onSave: () => void;
   onTest: (sourceKey: string) => void;
   hasApiKeyField: (sourceKey: string) => boolean;
+  getSourceStatus: (source: ImageSource) => SourceStatus;
 }) {
   if (sources.length === 0) return null;
 
@@ -324,11 +364,16 @@ function SourceSection({
       <div className="space-y-2">
         {sources.map((source) => {
           const isExpanded = expandedSources.has(source.key);
+          const status = getSourceStatus(source);
 
           return (
             <div
               key={source.key}
-              className="rounded-xl border border-border bg-card shadow-sm"
+              className={`rounded-xl border shadow-sm transition-colors ${
+                status === 'connected' ? 'border-green-500/30 bg-card' :
+                status === 'not_ready' ? 'border-border bg-card opacity-60' :
+                'border-border bg-card'
+              }`}
             >
               <button
                 onClick={() => onToggleExpanded(source.key)}
@@ -349,6 +394,15 @@ function SourceSection({
                       source.free ? 'bg-green-500/10 text-green-500' : 'bg-orange-500/10 text-orange-500'
                     }`}>
                       {source.free ? '무료' : '유료'}
+                    </span>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                      status === 'connected' ? 'bg-green-500/10 text-green-500' :
+                      status === 'no_key' ? 'bg-yellow-500/10 text-yellow-500' :
+                      'bg-gray-500/10 text-gray-400'
+                    }`}>
+                      {status === 'connected' ? '연동됨' :
+                       status === 'no_key' ? '키 미등록' :
+                       '준비 중'}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground truncate">{source.description}</p>

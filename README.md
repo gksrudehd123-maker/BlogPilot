@@ -499,6 +499,7 @@ Platform Type: NAVER | TISTORY | WORDPRESS | BLOGSPOT
 - [x] Pixabay 연결 테스트 per_page 최소값 수정 (400 에러 해결)
 - [x] DALL-E 이미지 생성 모듈 (OpenAI API Key 자동 재활용)
 - [x] Gemini Imagen 이미지 생성 모듈 (Gemini API Key 자동 재활용)
+- [x] 이미지 소스 상태 배지 (연동됨/키 미등록/준비 중) + 미구현 소스 흐리게 표시
 
 ### Phase C - 예약 발행 + 이미지
 > 예약/반복 발행 스케줄러 + AI 이미지 자동 삽입.
