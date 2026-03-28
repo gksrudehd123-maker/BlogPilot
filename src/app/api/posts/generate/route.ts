@@ -27,7 +27,7 @@ async function getAISettings(provider?: string) {
 // AI 글 생성 (멀티 AI 제공자 지원)
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { keyword, prompt, tone, length, model, provider } = body;
+  const { keyword, prompt, systemPrompt, tone, length, model, provider } = body;
 
   if (!keyword || !prompt) {
     return NextResponse.json(
@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
       provider: aiSettings.provider,
       keyword,
       prompt,
+      systemPrompt,
       tone,
       length,
       model: model || aiSettings.model,

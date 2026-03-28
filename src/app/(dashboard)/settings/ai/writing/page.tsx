@@ -16,6 +16,7 @@ type Prompt = {
   id: string;
   type?: PromptType;
   name: string;
+  systemPrompt?: string;
   content: string;
 };
 
@@ -431,10 +432,25 @@ export default function WritingAIPage() {
                 />
               </div>
             </div>
+            {/* 시스템 프롬프트 (AI 역할 설정) */}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-sm text-muted-foreground">시스템 프롬프트 (AI 역할)</label>
+                <span className="text-xs text-muted-foreground">선택사항</span>
+              </div>
+              <textarea
+                value={editingPrompt.systemPrompt || ''}
+                onChange={(e) => setEditingPrompt({ ...editingPrompt, systemPrompt: e.target.value })}
+                placeholder="예: 너는 네이버 블로그 SEO 전문가야. 홈판 노출에 최적화된 글을 작성해..."
+                rows={3}
+                className="rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+              />
+              <p className="text-xs text-muted-foreground">AI에게 역할/성격을 미리 설정합니다. GPTs의 Instructions와 같은 기능입니다.</p>
+            </div>
             {/* 내용 */}
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-sm text-muted-foreground">내용</label>
+                <label className="text-sm text-muted-foreground">내용 (사용자 프롬프트)</label>
                 <button
                   onClick={() => setShowExpandedEditor(true)}
                   className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"

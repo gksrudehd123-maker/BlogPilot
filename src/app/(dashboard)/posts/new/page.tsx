@@ -27,6 +27,7 @@ interface Platform {
 type Prompt = {
   id: string;
   name: string;
+  systemPrompt?: string;
   content: string;
 };
 
@@ -144,6 +145,7 @@ export default function NewPostPage() {
         body: JSON.stringify({
           keyword,
           prompt: prompt.content,
+          systemPrompt: prompt.systemPrompt || undefined,
           tone,
           length,
           provider,

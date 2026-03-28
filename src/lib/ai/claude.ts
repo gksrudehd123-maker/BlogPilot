@@ -8,6 +8,7 @@ const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 interface GenerateOptions {
   keyword: string;
   prompt: string;
+  systemPrompt?: string;
   tone?: string;
   length?: number;
   model?: string;
@@ -21,6 +22,7 @@ interface GenerateOptions {
 export async function generatePost({
   keyword,
   prompt,
+  systemPrompt,
   tone = '친근한',
   length = 1500,
   model = 'claude-sonnet-4-20250514',
@@ -48,6 +50,7 @@ export async function generatePost({
     body: JSON.stringify({
       model,
       max_tokens: 4096,
+      ...(systemPrompt ? { system: systemPrompt } : {}),
       messages: [
         {
           role: 'user',

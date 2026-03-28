@@ -483,6 +483,7 @@ Platform Type: NAVER | TISTORY | WORDPRESS | BLOGSPOT
 - [x] 연결 테스트 API (/api/ai/test)
 - [x] 새 글 쓰기에서 AI 제공자 선택 드롭다운
 - [x] 프롬프트 관리 UI 개선 (테이블 목록, 타입 분류, 행 선택→편집, 확대 편집 모달)
+- [x] 시스템 프롬프트 필드 추가 (AI 역할 설정 — Claude system / OpenAI system role / Gemini systemInstruction)
 
 ### Phase C - 예약 발행 + 이미지
 > 예약/반복 발행 스케줄러 + AI 이미지 자동 삽입.

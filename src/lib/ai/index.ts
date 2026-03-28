@@ -8,6 +8,7 @@ export interface GeneratePostOptions {
   provider: AIProvider;
   keyword: string;
   prompt: string;
+  systemPrompt?: string;
   tone?: string;
   length?: number;
   model?: string;
@@ -21,12 +22,13 @@ export async function generatePost({
   provider,
   keyword,
   prompt,
+  systemPrompt,
   tone,
   length,
   model,
   apiKey,
 }: GeneratePostOptions): Promise<string> {
-  const options = { keyword, prompt, tone, length, model, apiKey };
+  const options = { keyword, prompt, systemPrompt, tone, length, model, apiKey };
 
   switch (provider) {
     case 'claude':

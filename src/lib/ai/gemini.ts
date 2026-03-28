@@ -7,6 +7,7 @@ const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models'
 interface GenerateOptions {
   keyword: string;
   prompt: string;
+  systemPrompt?: string;
   tone?: string;
   length?: number;
   model?: string;
@@ -20,10 +21,10 @@ interface GenerateOptions {
 export async function generatePost({
   keyword,
   prompt,
+  systemPrompt,
   tone = '친근한',
   length = 1500,
   model = 'gemini-2.5-flash',
-
   apiKey,
 }: GenerateOptions): Promise<string> {
   const key = apiKey || process.env.GEMINI_API_KEY;
@@ -45,6 +46,7 @@ export async function generatePost({
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
+      ...(systemPrompt ? { systemInstruction: { parts: [{ text: systemPrompt }] } } : {}),
       contents: [
         {
           parts: [{ text: filledPrompt }],

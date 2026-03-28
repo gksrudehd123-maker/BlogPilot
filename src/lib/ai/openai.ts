@@ -7,6 +7,7 @@ const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 interface GenerateOptions {
   keyword: string;
   prompt: string;
+  systemPrompt?: string;
   tone?: string;
   length?: number;
   model?: string;
@@ -20,6 +21,7 @@ interface GenerateOptions {
 export async function generatePost({
   keyword,
   prompt,
+  systemPrompt,
   tone = '친근한',
   length = 1500,
   model = 'gpt-4o',
@@ -46,8 +48,9 @@ export async function generatePost({
       model,
       max_tokens: 4096,
       messages: [
+        ...(systemPrompt ? [{ role: 'system' as const, content: systemPrompt }] : []),
         {
-          role: 'user',
+          role: 'user' as const,
           content: filledPrompt,
         },
       ],
