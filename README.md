@@ -493,6 +493,8 @@ Platform Type: NAVER | TISTORY | WORDPRESS | BLOGSPOT
 - [x] 이미지 AI 설정 페이지 리뉴얼 (8개 소스, 아코디언 UI, 카테고리 분류, 연결 테스트)
 - [x] Pixabay/Unsplash 이미지 검색 모듈 + API 엔드포인트
 - [x] 글 생성 시 이미지 자동 삽입 (키워드 검색 → 소제목 사이에 균등 배치)
+- [x] 글쓰기 페이지에서 이미지 소스 직접 선택 (설정 페이지는 API Key 관리 전용)
+- [x] Pixabay 연결 테스트 per_page 최소값 수정 (400 에러 해결)
 
 ### Phase C - 예약 발행 + 이미지
 > 예약/반복 발행 스케줄러 + AI 이미지 자동 삽입.

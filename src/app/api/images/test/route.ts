@@ -9,7 +9,7 @@ async function testSource(source: string, apiKey: string): Promise<void> {
       const params = new URLSearchParams({
         key: apiKey,
         q: 'test',
-        per_page: '1',
+        per_page: '3',
       });
       const res = await fetch(`https://pixabay.com/api/?${params}`);
       if (!res.ok) {

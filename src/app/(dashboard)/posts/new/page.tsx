@@ -100,6 +100,8 @@ export default function NewPostPage() {
   const [length, setLength] = useState(1500);
   const [provider, setProvider] = useState('claude');
   const [insertImages, setInsertImages] = useState(false);
+  const [imageSource, setImageSource] = useState('');
+  const [availableImageSources, setAvailableImageSources] = useState<{ key: string; label: string }[]>([]);
   const [generating, setGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState('');
   const [title, setTitle] = useState('');
@@ -160,12 +162,13 @@ export default function NewPostPage() {
         if (data.ai_default_provider) {
           setProvider(data.ai_default_provider);
         }
-        // 이미지 소스가 하나라도 활성화되어 있으면 이미지 삽입 기본 ON
-        const hasImageSource = ['pixabay', 'unsplash'].some(
-          (s) => data[`image_${s}_enabled`] === 'true'
-        );
-        if (hasImageSource) {
-          setInsertImages(true);
+        // API Key가 저장된 이미지 소스 감지
+        const sources: { key: string; label: string }[] = [];
+        if (data.image_pixabay_api_key) sources.push({ key: 'pixabay', label: 'Pixabay' });
+        if (data.image_unsplash_api_key) sources.push({ key: 'unsplash', label: 'Unsplash' });
+        setAvailableImageSources(sources);
+        if (sources.length > 0) {
+          setImageSource(sources[0].key);
         }
         if (data.writing_char_length) {
           setLength(parseInt(data.writing_char_length));
@@ -216,7 +219,7 @@ export default function NewPostPage() {
             const imgRes = await fetch('/api/images/search', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ keyword }),
+              body: JSON.stringify({ keyword, source: imageSource }),
             });
             const imgData = await imgRes.json();
             if (imgData.success && imgData.images?.length > 0) {
@@ -430,17 +433,30 @@ export default function NewPostPage() {
               </div>
             </div>
 
-            {/* 이미지 자동 삽입 */}
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={insertImages}
-                onChange={(e) => setInsertImages(e.target.checked)}
-                className="h-4 w-4 rounded border-input accent-primary"
-              />
-              <span className="text-sm">이미지 자동 삽입</span>
-              <span className="text-xs text-muted-foreground">(이미지 AI 설정에서 소스 활성화 필요)</span>
-            </label>
+            {/* 이미지 소스 */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">이미지 삽입</label>
+              <div className="relative">
+                <select
+                  value={insertImages ? imageSource : 'none'}
+                  onChange={(e) => {
+                    if (e.target.value === 'none') {
+                      setInsertImages(false);
+                    } else {
+                      setInsertImages(true);
+                      setImageSource(e.target.value);
+                    }
+                  }}
+                  className="w-full appearance-none rounded-lg border border-input bg-background px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="none">사용 안 함</option>
+                  {availableImageSources.map((s) => (
+                    <option key={s.key} value={s.key}>{s.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              </div>
+            </div>
 
             {/* 생성 버튼 */}
             <button

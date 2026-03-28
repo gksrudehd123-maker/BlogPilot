@@ -120,7 +120,6 @@ const IMAGE_SOURCES: ImageSource[] = [
 
 export default function ImageAIPage() {
   const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
-  const [enabledSources, setEnabledSources] = useState<Set<string>>(new Set());
   const [settings, setSettings] = useState<Record<string, Record<string, string>>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -131,7 +130,6 @@ export default function ImageAIPage() {
     fetch('/api/settings')
       .then((res) => res.json())
       .then((data) => {
-        const enabled = new Set<string>();
         const parsed: Record<string, Record<string, string>> = {};
 
         for (const source of IMAGE_SOURCES) {
@@ -142,13 +140,8 @@ export default function ImageAIPage() {
               parsed[source.key][field.key] = data[settingKey];
             }
           }
-          const enabledKey = `image_${source.key}_enabled`;
-          if (data[enabledKey] === 'true') {
-            enabled.add(source.key);
-          }
         }
 
-        setEnabledSources(enabled);
         setSettings(parsed);
       })
       .finally(() => setLoading(false));
@@ -156,15 +149,6 @@ export default function ImageAIPage() {
 
   const toggleExpanded = (key: string) => {
     setExpandedSources((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  };
-
-  const toggleEnabled = (key: string) => {
-    setEnabledSources((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
@@ -185,7 +169,6 @@ export default function ImageAIPage() {
       const payload: Record<string, string> = {};
 
       for (const source of IMAGE_SOURCES) {
-        payload[`image_${source.key}_enabled`] = enabledSources.has(source.key) ? 'true' : 'false';
         for (const field of source.fields) {
           payload[`image_${source.key}_${field.key}`] = settings[source.key]?.[field.key] || '';
         }
@@ -264,12 +247,10 @@ export default function ImageAIPage() {
         title="유료 — AI 이미지 생성"
         sources={IMAGE_SOURCES.filter((s) => !s.free)}
         expandedSources={expandedSources}
-        enabledSources={enabledSources}
         settings={settings}
         saving={saving}
         testing={testing}
         onToggleExpanded={toggleExpanded}
-        onToggleEnabled={toggleEnabled}
         onUpdateField={updateField}
         onSave={handleSave}
         onTest={handleTest}
@@ -281,12 +262,10 @@ export default function ImageAIPage() {
         title="무료 — API Key 필요"
         sources={IMAGE_SOURCES.filter((s) => s.free && s.fields.some((f) => f.key === 'api_key'))}
         expandedSources={expandedSources}
-        enabledSources={enabledSources}
         settings={settings}
         saving={saving}
         testing={testing}
         onToggleExpanded={toggleExpanded}
-        onToggleEnabled={toggleEnabled}
         onUpdateField={updateField}
         onSave={handleSave}
         onTest={handleTest}
@@ -298,12 +277,10 @@ export default function ImageAIPage() {
         title="무료 — API Key 불필요"
         sources={IMAGE_SOURCES.filter((s) => s.free && !s.fields.some((f) => f.key === 'api_key'))}
         expandedSources={expandedSources}
-        enabledSources={enabledSources}
         settings={settings}
         saving={saving}
         testing={testing}
         onToggleExpanded={toggleExpanded}
-        onToggleEnabled={toggleEnabled}
         onUpdateField={updateField}
         onSave={handleSave}
         onTest={handleTest}
@@ -318,12 +295,10 @@ function SourceSection({
   title,
   sources,
   expandedSources,
-  enabledSources,
   settings,
   saving,
   testing,
   onToggleExpanded,
-  onToggleEnabled,
   onUpdateField,
   onSave,
   onTest,
@@ -332,12 +307,10 @@ function SourceSection({
   title: string;
   sources: ImageSource[];
   expandedSources: Set<string>;
-  enabledSources: Set<string>;
   settings: Record<string, Record<string, string>>;
   saving: boolean;
   testing: string | null;
   onToggleExpanded: (key: string) => void;
-  onToggleEnabled: (key: string) => void;
   onUpdateField: (sourceKey: string, fieldKey: string, value: string) => void;
   onSave: () => void;
   onTest: (sourceKey: string) => void;
@@ -351,14 +324,11 @@ function SourceSection({
       <div className="space-y-2">
         {sources.map((source) => {
           const isExpanded = expandedSources.has(source.key);
-          const isEnabled = enabledSources.has(source.key);
 
           return (
             <div
               key={source.key}
-              className={`rounded-xl border shadow-sm transition-colors ${
-                isEnabled ? 'border-primary/50 bg-card' : 'border-border bg-card'
-              }`}
+              className="rounded-xl border border-border bg-card shadow-sm"
             >
               <button
                 onClick={() => onToggleExpanded(source.key)}
@@ -380,11 +350,6 @@ function SourceSection({
                     }`}>
                       {source.free ? '무료' : '유료'}
                     </span>
-                    {isEnabled && (
-                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                        사용중
-                      </span>
-                    )}
                   </div>
                   <p className="text-xs text-muted-foreground truncate">{source.description}</p>
                 </div>
@@ -392,16 +357,6 @@ function SourceSection({
 
               {isExpanded && (
                 <div className="border-t border-border px-4 pb-4 pt-3 space-y-4">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={isEnabled}
-                      onChange={() => onToggleEnabled(source.key)}
-                      className="h-4 w-4 rounded border-input accent-primary"
-                    />
-                    <span className="text-sm font-medium">{source.label} 사용</span>
-                  </label>
-
                   {source.fields.map((field) => (
                     <div key={field.key} className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
                       <label className="w-44 shrink-0 text-sm text-muted-foreground">{field.label}</label>

@@ -3,40 +3,23 @@ import { searchImages, type ImageSource } from '@/lib/image';
 import { prisma } from '@/lib/prisma';
 
 /**
- * DB에서 활성화된 이미지 소스의 설정을 조회
+ * DB에서 이미지 소스 설정을 조회 (enabled 여부와 관계없이 API Key 기준)
  */
-async function getImageSettings() {
+async function getSourceConfig(sourceKey: string) {
   const settings = await prisma.setting.findMany({
-    where: { key: { startsWith: 'image_' } },
+    where: { key: { startsWith: `image_${sourceKey}_` } },
   });
 
   const map = new Map(settings.map((s) => [s.key, s.value]));
 
-  const sources: { source: ImageSource; apiKey: string; count: number }[] = [];
+  const apiKey = map.get(`image_${sourceKey}_api_key`) || '';
+  const count = parseInt(map.get(`image_${sourceKey}_count`) || '8');
 
-  // Pixabay
-  if (map.get('image_pixabay_enabled') === 'true') {
-    sources.push({
-      source: 'pixabay',
-      apiKey: map.get('image_pixabay_api_key') || '',
-      count: parseInt(map.get('image_pixabay_count') || '8'),
-    });
-  }
-
-  // Unsplash
-  if (map.get('image_unsplash_enabled') === 'true') {
-    sources.push({
-      source: 'unsplash',
-      apiKey: map.get('image_unsplash_api_key') || '',
-      count: parseInt(map.get('image_unsplash_count') || '8'),
-    });
-  }
-
-  return sources;
+  return { source: sourceKey as ImageSource, apiKey, count };
 }
 
 // POST /api/images/search
-// 활성화된 이미지 소스에서 키워드로 검색
+// 지정된 이미지 소스에서 키워드로 검색
 export async function POST(request: NextRequest) {
   const body = await request.json();
   const { keyword, source, count } = body;
@@ -48,38 +31,23 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (!source) {
+    return NextResponse.json(
+      { error: '이미지 소스를 선택해주세요' },
+      { status: 400 },
+    );
+  }
+
   try {
-    // 특정 소스가 지정된 경우
-    if (source) {
-      const settings = await getImageSettings();
-      const config = settings.find((s) => s.source === source);
-      if (!config) {
-        return NextResponse.json(
-          { error: `${source}가 활성화되지 않았습니다. 이미지 AI 설정을 확인해주세요.` },
-          { status: 400 },
-        );
-      }
+    const config = await getSourceConfig(source);
 
-      const images = await searchImages({
-        source: config.source,
-        keyword,
-        apiKey: config.apiKey,
-        count: count || config.count,
-      });
-
-      return NextResponse.json({ success: true, images, source });
-    }
-
-    // 소스 미지정 → 활성화된 첫 번째 소스 사용
-    const settings = await getImageSettings();
-    if (settings.length === 0) {
+    if (!config.apiKey) {
       return NextResponse.json(
-        { error: '활성화된 이미지 소스가 없습니다. 이미지 AI 설정에서 소스를 활성화해주세요.' },
+        { error: `${source} API Key가 설정되지 않았습니다. 이미지 AI 설정에서 등록해주세요.` },
         { status: 400 },
       );
     }
 
-    const config = settings[0];
     const images = await searchImages({
       source: config.source,
       keyword,
@@ -87,7 +55,7 @@ export async function POST(request: NextRequest) {
       count: count || config.count,
     });
 
-    return NextResponse.json({ success: true, images, source: config.source });
+    return NextResponse.json({ success: true, images, source });
   } catch (err) {
     const message = err instanceof Error ? err.message : '이미지 검색에 실패했습니다';
     return NextResponse.json(
