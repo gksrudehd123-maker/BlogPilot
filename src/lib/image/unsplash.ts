@@ -27,18 +27,12 @@ async function translateToEnglish(text: string): Promise<string> {
   try {
     const url = `${TRANSLATE_URL}?client=gtx&sl=ko&tl=en&dt=t&q=${encodeURIComponent(text)}`;
     const res = await fetch(url);
-    if (!res.ok) {
-      console.log('[Translate] failed:', res.status);
-      return text;
-    }
+    if (!res.ok) return text;
 
     const raw = await res.text();
     const data = JSON.parse(raw);
-    const translated = data?.[0]?.[0]?.[0] || text;
-    console.log('[Translate]', text, '→', translated);
-    return translated;
-  } catch (err) {
-    console.log('[Translate] error:', err);
+    return data?.[0]?.[0]?.[0] || text;
+  } catch {
     return text;
   }
 }

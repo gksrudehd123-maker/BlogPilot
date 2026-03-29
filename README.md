@@ -502,7 +502,7 @@ Platform Type: NAVER | TISTORY | WORDPRESS | BLOGSPOT
 - [x] 이미지 소스 상태 배지 (연동됨/키 미등록/준비 중) + 미구현 소스 흐리게 표시
 - [x] OpenAI 글 생성 시 마크다운 코드블록 자동 제거 (화면 깨짐 방지)
 - [x] Pixabay per_page 최소값 3 적용 (400 에러 방지)
-- [ ] Unsplash 한국어 키워드 영어 자동 번역 후 재검색 (구현 중, 미완료)
+- [x] Unsplash 한국어 키워드 영어 자동 번역 후 재검색 (Google Translate 무료 API)
 
 ### Phase C - 예약 발행 + 이미지
 > 예약/반복 발행 스케줄러 + AI 이미지 자동 삽입.
