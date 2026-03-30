@@ -2,13 +2,15 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { BarChart3, Plus, Trash2, PenLine, Loader2, Search, X, RefreshCw } from 'lucide-react';
+import { BarChart3, Plus, Trash2, PenLine, Loader2, Search, X, RefreshCw, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Keyword {
   id: string;
   keyword: string;
   searchVolume: number | null;
+  pcSearchVolume: number | null;
+  mobileSearchVolume: number | null;
   competition: string | null;
   createdAt: string;
 }
@@ -20,6 +22,7 @@ export default function KeywordAnalysisPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newKeyword, setNewKeyword] = useState('');
   const [adding, setAdding] = useState(false);
+  const [fetchingVolume, setFetchingVolume] = useState(false);
 
   // 키워드 검색
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -87,6 +90,35 @@ export default function KeywordAnalysisPage() {
       }
     } catch {
       toast.error('삭제에 실패했습니다');
+    }
+  };
+
+  // 검색량 일괄 조회
+  const handleFetchVolume = async () => {
+    if (keywords.length === 0) {
+      toast.error('등록된 키워드가 없습니다');
+      return;
+    }
+
+    setFetchingVolume(true);
+    try {
+      const res = await fetch('/api/keywords/search-volume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keywords: keywords.map((k) => k.keyword) }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success(`${data.volumes.length}개 키워드 검색량이 업데이트되었습니다`);
+        fetchKeywords();
+      } else {
+        toast.error(data.error || '검색량 조회에 실패했습니다');
+      }
+    } catch {
+      toast.error('검색량 조회에 실패했습니다');
+    } finally {
+      setFetchingVolume(false);
     }
   };
 
@@ -343,14 +375,28 @@ export default function KeywordAnalysisPage() {
 
       {/* 내 키워드 테이블 */}
       <div>
-        <h2 className="mb-3 text-lg font-semibold">내 키워드</h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">내 키워드</h2>
+          {keywords.length > 0 && (
+            <button
+              onClick={handleFetchVolume}
+              disabled={fetchingVolume}
+              className="flex items-center gap-2 rounded-lg border border-input px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              {fetchingVolume ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <TrendingUp className="h-3.5 w-3.5" />}
+              검색량 조회
+            </button>
+          )}
+        </div>
         {keywords.length > 0 ? (
           <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/50">
                   <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">키워드</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">검색량</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">PC</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">모바일</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">합계</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">경쟁도</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">추천도</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">등록일</th>
@@ -364,6 +410,12 @@ export default function KeywordAnalysisPage() {
                     <tr key={kw.id} className="border-b border-border hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 font-medium">{kw.keyword}</td>
                       <td className="px-4 py-3 text-right text-muted-foreground">
+                        {kw.pcSearchVolume != null ? kw.pcSearchVolume.toLocaleString() : '-'}
+                      </td>
+                      <td className="px-4 py-3 text-right text-muted-foreground">
+                        {kw.mobileSearchVolume != null ? kw.mobileSearchVolume.toLocaleString() : '-'}
+                      </td>
+                      <td className="px-4 py-3 text-right font-medium">
                         {kw.searchVolume != null ? kw.searchVolume.toLocaleString() : '-'}
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -421,7 +473,7 @@ export default function KeywordAnalysisPage() {
               </tbody>
             </table>
             <div className="px-4 py-3 text-xs text-muted-foreground border-t border-border bg-muted/30">
-              총 {keywords.length}개 키워드 | 검색량/경쟁도는 네이버 검색광고 API 연동 시 표시됩니다
+              총 {keywords.length}개 키워드 | [검색량 조회] 버튼을 클릭하면 네이버 검색량/경쟁도가 업데이트됩니다
             </div>
           </div>
         ) : (

@@ -124,10 +124,12 @@ model PublishLog {
 // ============================================================
 
 model Keyword {
-  id           String @id @default(cuid())
-  keyword      String
-  searchVolume Int?   // 검색량
-  competition  String? // 경쟁도 (높음/중간/낮음)
+  id                 String @id @default(cuid())
+  keyword            String
+  searchVolume       Int?   // 총 검색량 (PC+모바일)
+  pcSearchVolume     Int?   // PC 검색량
+  mobileSearchVolume Int?   // 모바일 검색량
+  competition        String? // 경쟁도 (높음/중간/낮음)
 
   userId String
   user   User @relation(fields: [userId], references: [id])

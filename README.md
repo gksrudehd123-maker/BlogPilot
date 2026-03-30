@@ -552,7 +552,7 @@ Platform Type: NAVER | TISTORY | WORDPRESS | BLOGSPOT
 - [x] 키워드 검색+분석 통합 페이지 (/keywords/analysis) — 연관 키워드 검색 + 내 키워드 관리
 - [x] 키워드 CRUD API (/api/keywords) — 추가/목록/삭제, 중복 체크
 - [x] 사이드바 키워드분석 단독 메뉴로 변경
-- [ ] 네이버 검색광고 API 연동 (키워드 검색량 분석)
+- [x] 네이버 검색광고 API 연동 (PC/모바일/합계 검색량 + 경쟁도 + 추천도)
 - [ ] 키워드 경쟁도 분석 + 트렌드 차트 (Google Trends)
 - [ ] 키워드 저장/관리 (키워드 분석 페이지)
 
