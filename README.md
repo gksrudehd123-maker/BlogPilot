@@ -549,7 +549,9 @@ Platform Type: NAVER | TISTORY | WORDPRESS | BLOGSPOT
 
 #### D-2. 키워드 리서치 (일부 완료)
 - [x] Google/네이버 자동완성 연관 키워드 검색 (API Key 불필요)
-- [x] 키워드 검색 페이지 (/keywords/search) — 나란히 표시, 재검색, 글쓰기 연동
+- [x] 키워드 검색+분석 통합 페이지 (/keywords/analysis) — 연관 키워드 검색 + 내 키워드 관리
+- [x] 키워드 CRUD API (/api/keywords) — 추가/목록/삭제, 중복 체크
+- [x] 사이드바 키워드분석 단독 메뉴로 변경
 - [ ] 네이버 검색광고 API 연동 (키워드 검색량 분석)
 - [ ] 키워드 경쟁도 분석 + 트렌드 차트 (Google Trends)
 - [ ] 키워드 저장/관리 (키워드 분석 페이지)

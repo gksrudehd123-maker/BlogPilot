@@ -29,14 +29,6 @@ interface NavGroup {
 
 const navGroups: NavGroup[] = [
   {
-    label: '키워드',
-    icon: Search,
-    children: [
-      { href: '/keywords/analysis', label: '키워드분석' },
-      { href: '/keywords/search', label: '키워드검색' },
-    ],
-  },
-  {
     label: '글 관리',
     icon: PenLine,
     children: [
@@ -130,6 +122,22 @@ function TreeNav({
           </div>
         );
       })}
+
+      {/* 키워드분석 (단독 메뉴) */}
+      <Link
+        href="/keywords/analysis"
+        className={cn(
+          'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+          pathname === '/keywords/analysis' || pathname.startsWith('/keywords')
+            ? 'text-primary'
+            : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+          collapsed && 'justify-center px-2',
+        )}
+        title={collapsed ? '키워드분석' : undefined}
+      >
+        <Search className="h-5 w-5 shrink-0" />
+        {!collapsed && <span>키워드분석</span>}
+      </Link>
 
       {/* 통계 (단독 메뉴) */}
       <Link
