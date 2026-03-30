@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, Sparkles, Send, ChevronDown, Copy, Check, Save, List, PenLine, Bot, Eye, Code, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import TurndownService from 'turndown';
@@ -95,8 +95,9 @@ function insertImagesIntoContent(
 
 export default function NewPostPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [prompts, setPrompts] = useState<Prompt[]>(fallbackPrompts);
-  const [keyword, setKeyword] = useState('');
+  const [keyword, setKeyword] = useState(searchParams.get('keyword') || '');
   const [selectedPromptId, setSelectedPromptId] = useState(fallbackPrompts[0].id);
   const [tone, setTone] = useState('친근한');
   const [length, setLength] = useState(1500);
