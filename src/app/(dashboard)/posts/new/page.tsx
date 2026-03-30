@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Sparkles, Send, ChevronDown, Copy, Check, Save, List, PenLine, Bot } from 'lucide-react';
+import { Loader2, Sparkles, Send, ChevronDown, Copy, Check, Save, List, PenLine, Bot, Eye, Code, FileText } from 'lucide-react';
 import { toast } from 'sonner';
+import TurndownService from 'turndown';
+import { marked } from 'marked';
 
 type AIProviderOption = {
   key: string;
@@ -104,6 +106,8 @@ export default function NewPostPage() {
   const [availableImageSources, setAvailableImageSources] = useState<{ key: string; label: string }[]>([]);
   const [generating, setGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState('');
+  const [previewTab, setPreviewTab] = useState<'preview' | 'html' | 'markdown'>('preview');
+  const [markdownContent, setMarkdownContent] = useState('');
   const [title, setTitle] = useState('');
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [selectedPlatformIds, setSelectedPlatformIds] = useState<string[]>([]);
@@ -242,6 +246,10 @@ export default function NewPostPage() {
         }
 
         setGeneratedContent(finalContent);
+        // HTML → 마크다운 변환
+        const turndown = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
+        setMarkdownContent(turndown.turndown(finalContent));
+        setPreviewTab('preview');
         // 제목 자동 추출 (첫 번째 h1 또는 h2 태그에서)
         const titleMatch = finalContent.match(/<h[12][^>]*>(.*?)<\/h[12]>/i);
         const autoTitle = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, '') : keyword;
@@ -601,10 +609,42 @@ export default function NewPostPage() {
           )}
         </div>
 
-        {/* 오른쪽: 미리보기 */}
+        {/* 오른쪽: 미리보기 / HTML 편집 / 마크다운 편집 */}
         <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">미리보기</h2>
+            {generatedContent ? (
+              <div className="flex items-center gap-1 rounded-lg border border-border p-0.5">
+                <button
+                  onClick={() => setPreviewTab('preview')}
+                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                    previewTab === 'preview' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  미리보기
+                </button>
+                <button
+                  onClick={() => setPreviewTab('html')}
+                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                    previewTab === 'html' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Code className="h-3.5 w-3.5" />
+                  HTML
+                </button>
+                <button
+                  onClick={() => setPreviewTab('markdown')}
+                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                    previewTab === 'markdown' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  마크다운
+                </button>
+              </div>
+            ) : (
+              <h2 className="text-lg font-semibold">미리보기</h2>
+            )}
             {generatedContent && (
               <button
                 onClick={handleCopy}
@@ -622,10 +662,40 @@ export default function NewPostPage() {
               <p className="mt-4 text-sm text-muted-foreground">AI가 글을 작성하고 있습니다...</p>
             </div>
           ) : generatedContent ? (
-            <div
-              className="prose prose-sm dark:prose-invert mt-4 max-w-none"
-              dangerouslySetInnerHTML={{ __html: generatedContent }}
-            />
+            <>
+              {previewTab === 'preview' && (
+                <div
+                  className="prose prose-sm dark:prose-invert mt-4 max-w-none"
+                  dangerouslySetInnerHTML={{ __html: generatedContent }}
+                />
+              )}
+              {previewTab === 'html' && (
+                <textarea
+                  value={generatedContent}
+                  onChange={(e) => {
+                    setGeneratedContent(e.target.value);
+                    const turndown = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
+                    setMarkdownContent(turndown.turndown(e.target.value));
+                  }}
+                  className="mt-4 w-full min-h-[500px] rounded-lg border border-input bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+                  placeholder="HTML 소스를 직접 수정할 수 있습니다..."
+                />
+              )}
+              {previewTab === 'markdown' && (
+                <textarea
+                  value={markdownContent}
+                  onChange={(e) => {
+                    setMarkdownContent(e.target.value);
+                    const html = marked.parse(e.target.value);
+                    if (typeof html === 'string') {
+                      setGeneratedContent(html);
+                    }
+                  }}
+                  className="mt-4 w-full min-h-[500px] rounded-lg border border-input bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+                  placeholder="마크다운으로 수정할 수 있습니다..."
+                />
+              )}
+            </>
           ) : (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <Sparkles className="h-10 w-10 text-muted-foreground" />
