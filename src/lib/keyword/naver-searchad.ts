@@ -99,3 +99,66 @@ export async function getKeywordVolumes(
 
   return results;
 }
+
+/**
+ * 네이버 검색광고 API로 연관키워드 전체 조회 (필터링 없이)
+ */
+export async function getRelatedKeywords(
+  keyword: string,
+  config: NaverSearchAdConfig,
+): Promise<KeywordVolume[]> {
+  const { apiKey, secretKey, customerId } = config;
+
+  if (!apiKey || !secretKey || !customerId) {
+    throw new Error('네이버 검색광고 API 설정이 필요합니다.');
+  }
+
+  const method = 'GET';
+  const path = '/keywordstool';
+  const ts = String(Date.now());
+  const sig = generateSignature(ts, method, path, secretKey);
+
+  // 공백 포함 시 공백 제거 버전도 시도
+  const variants = [keyword];
+  if (keyword.includes(' ')) variants.push(keyword.replace(/\s+/g, ''));
+
+  for (const variant of variants) {
+    const url = `${API_URL}?hintKeywords=${encodeURIComponent(variant)}&showDetail=1`;
+
+    const res = await fetch(url, {
+      headers: {
+        'X-Timestamp': ts,
+        'X-API-KEY': apiKey,
+        'X-Customer': customerId,
+        'X-Signature': sig,
+      },
+    });
+
+    if (!res.ok) continue;
+
+    const data = await res.json();
+    const list = data.keywordList || [];
+
+    if (list.length > 0) {
+      return list.map((item: {
+        relKeyword: string;
+        monthlyPcQcCnt: number | string;
+        monthlyMobileQcCnt: number | string;
+        compIdx: string;
+      }) => {
+        const pc = typeof item.monthlyPcQcCnt === 'number' ? item.monthlyPcQcCnt : 0;
+        const mobile = typeof item.monthlyMobileQcCnt === 'number' ? item.monthlyMobileQcCnt : 0;
+
+        return {
+          keyword: item.relKeyword,
+          pcSearchVolume: pc,
+          mobileSearchVolume: mobile,
+          totalSearchVolume: pc + mobile,
+          competition: item.compIdx || '알수없음',
+        };
+      });
+    }
+  }
+
+  return [];
+}

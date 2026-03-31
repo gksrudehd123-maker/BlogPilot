@@ -17,7 +17,7 @@ export async function GET() {
 // POST /api/keywords — 키워드 추가
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { keyword } = body;
+  const { keyword, searchVolume, pcSearchVolume, mobileSearchVolume, competition } = body;
 
   if (!keyword) {
     return NextResponse.json(
@@ -49,6 +49,10 @@ export async function POST(request: NextRequest) {
     data: {
       keyword: keyword.trim(),
       userId: user.id,
+      ...(searchVolume != null ? { searchVolume } : {}),
+      ...(pcSearchVolume != null ? { pcSearchVolume } : {}),
+      ...(mobileSearchVolume != null ? { mobileSearchVolume } : {}),
+      ...(competition ? { competition } : {}),
     },
   });
 
