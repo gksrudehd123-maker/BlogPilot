@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generatePost, type AIProvider } from '@/lib/ai';
+import { generatePost, type AIProvider, type GenerateMode } from '@/lib/ai';
 import { prisma } from '@/lib/prisma';
 
 /**
@@ -27,11 +27,21 @@ async function getAISettings(provider?: string) {
 // AI 글 생성 (멀티 AI 제공자 지원)
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { keyword, prompt, systemPrompt, tone, length, model, provider } = body;
+  const { keyword, prompt, systemPrompt, tone, length, model, provider, mode, referenceContent } = body;
 
-  if (!keyword || !prompt) {
+  const generateMode: GenerateMode = mode || 'keyword';
+
+  // 모드별 유효성 검사
+  if (generateMode === 'keyword' && (!keyword || !prompt)) {
     return NextResponse.json(
       { error: '키워드와 프롬프트는 필수입니다' },
+      { status: 400 },
+    );
+  }
+
+  if (generateMode === 'reference' && !referenceContent) {
+    return NextResponse.json(
+      { error: '참고 글 본문은 필수입니다' },
       { status: 400 },
     );
   }
@@ -41,13 +51,15 @@ export async function POST(request: NextRequest) {
 
     const content = await generatePost({
       provider: aiSettings.provider,
-      keyword,
-      prompt,
+      keyword: keyword || '',
+      prompt: prompt || '',
       systemPrompt,
       tone,
       length,
       model: model || aiSettings.model,
       apiKey: aiSettings.apiKey,
+      mode: generateMode,
+      referenceContent,
     });
 
     return NextResponse.json({

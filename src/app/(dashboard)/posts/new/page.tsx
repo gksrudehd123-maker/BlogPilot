@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2, Sparkles, Send, ChevronDown, Copy, Check, Save, List, PenLine, Bot, Eye, Code, FileText } from 'lucide-react';
+import { Loader2, Sparkles, Send, ChevronDown, Copy, Check, Save, List, PenLine, Bot, Eye, Code, FileText, FileSearch, Maximize2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import TurndownService from 'turndown';
 import { marked } from 'marked';
@@ -96,6 +97,9 @@ function insertImagesIntoContent(
 export default function NewPostPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [mode, setMode] = useState<'keyword' | 'reference'>('keyword');
+  const [referenceContent, setReferenceContent] = useState('');
+  const [referenceModalOpen, setReferenceModalOpen] = useState(false);
   const [prompts, setPrompts] = useState<Prompt[]>(fallbackPrompts);
   const [keyword, setKeyword] = useState(searchParams.get('keyword') || '');
   const [selectedPromptId, setSelectedPromptId] = useState(fallbackPrompts[0].id);
@@ -189,30 +193,48 @@ export default function NewPostPage() {
   }, [fetchPlatforms]);
 
   const handleGenerate = async () => {
-    if (!keyword.trim()) {
+    if (mode === 'keyword' && !keyword.trim()) {
       toast.error('키워드를 입력하세요');
+      return;
+    }
+    if (mode === 'reference' && !referenceContent.trim()) {
+      toast.error('참고 글을 입력하세요');
       return;
     }
 
     const prompt = prompts.find((p) => p.id === selectedPromptId);
-    if (!prompt) return;
 
     setGenerating(true);
     setGeneratedContent('');
     setTitle('');
 
     try {
+      const refPrompt = prompts.find((p) => p.id === selectedPromptId);
+      const body = mode === 'reference'
+        ? {
+            keyword: keyword || '',
+            prompt: refPrompt?.content || '',
+            systemPrompt: refPrompt?.systemPrompt || undefined,
+            tone,
+            length,
+            provider,
+            mode: 'reference',
+            referenceContent,
+          }
+        : {
+            keyword,
+            prompt: prompt?.content || '',
+            systemPrompt: prompt?.systemPrompt || undefined,
+            tone,
+            length,
+            provider,
+            mode: 'keyword',
+          };
+
       const res = await fetch('/api/posts/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          keyword,
-          prompt: prompt.content,
-          systemPrompt: prompt.systemPrompt || undefined,
-          tone,
-          length,
-          provider,
-        }),
+        body: JSON.stringify(body),
       });
 
       const data = await res.json();
@@ -374,36 +396,148 @@ export default function NewPostPage() {
           <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-6 space-y-4">
             <h2 className="text-lg font-semibold">글 생성</h2>
 
-            {/* 키워드 */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">키워드</label>
-              <input
-                type="text"
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-                placeholder="예: 재테크 방법, 맛집 추천"
-                className="rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              />
+            {/* 모드 전환 탭 */}
+            <div className="flex items-center gap-1 rounded-lg border border-border p-0.5">
+              <button
+                onClick={() => setMode('keyword')}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  mode === 'keyword' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                키워드 기반
+              </button>
+              <button
+                onClick={() => setMode('reference')}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  mode === 'reference' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <FileSearch className="h-3.5 w-3.5" />
+                본문 기반
+              </button>
             </div>
 
-            {/* 프롬프트 선택 */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">프롬프트</label>
-              <div className="relative">
-                <select
-                  value={selectedPromptId}
-                  onChange={(e) => setSelectedPromptId(e.target.value)}
-                  className="w-full appearance-none rounded-lg border border-input bg-background px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  {prompts.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              </div>
-            </div>
+            {mode === 'reference' ? (
+              <>
+                {/* 참고 글 입력 */}
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">참고 글</label>
+                    <button
+                      type="button"
+                      onClick={() => setReferenceModalOpen(true)}
+                      className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    >
+                      <Maximize2 className="h-3.5 w-3.5" />
+                      확대
+                    </button>
+                  </div>
+                  <textarea
+                    value={referenceContent}
+                    onChange={(e) => setReferenceContent(e.target.value)}
+                    placeholder="참고할 글의 본문을 붙여넣으세요 (HTML 또는 텍스트)"
+                    className="min-h-[200px] rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    AI가 이 글의 구조(소제목, 단락 흐름, 형식)를 분석하여 새 글을 생성합니다
+                  </p>
+                </div>
+
+                {/* 참고 글 확대 모달 */}
+                <Dialog open={referenceModalOpen} onOpenChange={setReferenceModalOpen}>
+                  <DialogContent className="sm:max-w-3xl max-h-[85vh] flex flex-col">
+                    <DialogHeader>
+                      <DialogTitle>참고 글 입력</DialogTitle>
+                    </DialogHeader>
+                    <textarea
+                      value={referenceContent}
+                      onChange={(e) => setReferenceContent(e.target.value)}
+                      placeholder="참고할 글의 본문을 붙여넣으세요 (HTML 또는 텍스트)"
+                      className="flex-1 min-h-[60vh] rounded-lg border border-input bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                      autoFocus
+                    />
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground">
+                        {referenceContent.length.toLocaleString()}자 입력됨
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setReferenceModalOpen(false)}
+                        className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                      >
+                        확인
+                      </button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                {/* 새 주제 키워드 (선택) */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium">새 주제/키워드 <span className="text-muted-foreground font-normal">(선택)</span></label>
+                  <input
+                    type="text"
+                    value={keyword}
+                    onChange={(e) => setKeyword(e.target.value)}
+                    placeholder="예: 재테크 방법 (비워두면 AI가 주제 선정)"
+                    className="rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+
+                {/* 프롬프트 선택 (선택) */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium">추가 지시 프롬프트 <span className="text-muted-foreground font-normal">(선택)</span></label>
+                  <div className="relative">
+                    <select
+                      value={selectedPromptId}
+                      onChange={(e) => setSelectedPromptId(e.target.value)}
+                      className="w-full appearance-none rounded-lg border border-input bg-background px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    >
+                      <option value="">사용 안 함</option>
+                      {prompts.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* 키워드 */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium">키워드</label>
+                  <input
+                    type="text"
+                    value={keyword}
+                    onChange={(e) => setKeyword(e.target.value)}
+                    placeholder="예: 재테크 방법, 맛집 추천"
+                    className="rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+
+                {/* 프롬프트 선택 */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium">프롬프트</label>
+                  <div className="relative">
+                    <select
+                      value={selectedPromptId}
+                      onChange={(e) => setSelectedPromptId(e.target.value)}
+                      className="w-full appearance-none rounded-lg border border-input bg-background px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    >
+                      {prompts.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* AI 제공자 선택 */}
             <div className="flex flex-col gap-1.5">
@@ -490,8 +624,8 @@ export default function NewPostPage() {
                 </>
               ) : (
                 <>
-                  <Sparkles className="h-4 w-4" />
-                  {AI_PROVIDERS.find((p) => p.key === provider)?.icon} 글 생성
+                  {mode === 'reference' ? <FileSearch className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+                  {AI_PROVIDERS.find((p) => p.key === provider)?.icon} {mode === 'reference' ? '구조 분석 + 글 생성' : '글 생성'}
                 </>
               )}
             </button>
@@ -699,13 +833,27 @@ export default function NewPostPage() {
             </>
           ) : (
             <div className="flex flex-col items-center justify-center py-20 text-center">
-              <Sparkles className="h-10 w-10 text-muted-foreground" />
-              <p className="mt-4 text-sm text-muted-foreground">
-                키워드를 입력하고 AI 글 생성 버튼을 클릭하세요
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                생성된 글이 여기에 미리보기로 표시됩니다
-              </p>
+              {mode === 'reference' ? (
+                <>
+                  <FileSearch className="h-10 w-10 text-muted-foreground" />
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    참고 글을 붙여넣고 글 생성 버튼을 클릭하세요
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    AI가 참고 글의 구조를 분석하여 새로운 글을 생성합니다
+                  </p>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-10 w-10 text-muted-foreground" />
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    키워드를 입력하고 AI 글 생성 버튼을 클릭하세요
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    생성된 글이 여기에 미리보기로 표시됩니다
+                  </p>
+                </>
+              )}
             </div>
           )}
         </div>
